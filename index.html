@@ -343,7 +343,7 @@
     </div>
 
     <script>
-        const GROQ_API_KEY = "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";
+        const GROQ_API_KEY = "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";
         const GEMINI_API_KEY = "AQ.Ab8RN6Iec_ZTtFa1YBQvV7jgungEYgoJS0yP4aXtSzC-SLX77g"; 
         const HF_API_KEY = "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";
         
@@ -656,7 +656,7 @@ IMAGE GENERATION INSTRUCTIONS:
             let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             html = html.replace(/```(\w*)\n([\s\S]*?)(?:```|$)/g, (match, lang, code) => {
                 const headerText = lang ? lang.toUpperCase() : 'TEXT';
-                return `<div class="code-block"><div class="code-header"><span>${headerText}</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-content">${code}</div></div>`;
+                return `<div class="code-block"><div class="code-header"><span>\( {headerText}</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-content"> \){code}</div></div>`;
             });
             return html;
         }
@@ -842,7 +842,7 @@ IMAGE GENERATION INSTRUCTIONS:
             const tb = document.createElement('div');
             tb.className = 'message-wrapper capella-wrapper';
             tb.id = 'thinkingBubble';
-            tb.innerHTML = `<div class="message-header"><div class="message-header-left"><img src="${CAPELLA_PFP_URL}" onerror="this.src='[https://api.iconify.design/lucide:bot.svg](https://api.iconify.design/lucide:bot.svg)'" class="sender-icon"><span class="sender-name">Capella</span></div></div>
+            tb.innerHTML = `<div class="message-header"><div class="message-header-left"><img src="${CAPELLA_PFP_URL}" onerror="this.src='https://api.iconify.design/lucide:bot.svg'" class="sender-icon"><span class="sender-name">Capella</span></div></div>
             <div class="message capella-msg"><div class="thinking-indicator"><div class="blue-dot-pulse"></div><span style="font-size:0.8rem;color:#94a3b8">Thinking... <span id="thinkPctText">0%</span></span></div></div>`;
             chatContainer.appendChild(tb);
             chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -858,7 +858,7 @@ IMAGE GENERATION INSTRUCTIONS:
             aiWrapper.innerHTML = `
                 <div class="message-header">
                     <div class="message-header-left">
-                        <img src="${CAPELLA_PFP_URL}" onerror="this.src='[https://api.iconify.design/lucide:bot.svg](https://api.iconify.design/lucide:bot.svg)'" class="sender-icon">
+                        <img src="${CAPELLA_PFP_URL}" onerror="this.src='https://api.iconify.design/lucide:bot.svg'" class="sender-icon">
                         <span class="sender-name">Capella</span>
                     </div>
                     <span class="type-percentage">0%</span>
