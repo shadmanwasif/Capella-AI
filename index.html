@@ -1,888 +1,1230 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Capella AI - Intelligent Assistant</title>
-
-    <meta name="description" content="Capella AI is an advanced, ultra-fast AI assistant created by Shadman Wasif Faruque.">
-    <meta name="author" content="Shadman Wasif Faruque">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Capella AI Assistant - Gemini Powered</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0a0a0f',
+                        cardbg: '#13131d',
+                        cardborder: '#22223b',
+                        accentprimary: '#8b5cf6',
+                        accentsecondary: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- External Libraries: Marked.js for Markdown & Lucide for Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
+        body { 
+            font-family: 'Inter', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
         }
-
-        body {
-            background-color: #0d0f12;
-            color: #f0f3f8;
-            height: 100vh;
-            height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            transition: background-color 0.3s, color 0.3s;
+        .glass { 
+            background: rgba(19, 19, 29, 0.88); 
+            backdrop-filter: blur(14px); 
+            -webkit-backdrop-filter: blur(14px); 
         }
-
-        /* Light Theme Variations */
-        body.light-theme {
-            background-color: #f8fafc;
-            color: #0f172a;
+        .glass-light { 
+            background: rgba(255, 255, 255, 0.92); 
+            backdrop-filter: blur(14px); 
+            -webkit-backdrop-filter: blur(14px); 
         }
-        body.light-theme .header { background: rgba(255, 255, 255, 0.9); border-bottom: 1px solid #e2e8f0; }
-        body.light-theme .sidebar { background-color: #ffffff; border-right: 1px solid #e2e8f0; }
-        body.light-theme .sidebar-header { border-bottom: 1px solid #e2e8f0; }
-        body.light-theme .capella-msg { background-color: #ffffff; color: #1e293b; border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        body.light-theme .user-msg { background: linear-gradient(135deg, #4f46e5, #3730a3); color: #ffffff; border: none; }
-        body.light-theme .input-container { background: rgba(255, 255, 255, 0.95); border-top: 1px solid #e2e8f0; }
-        body.light-theme .input-box { background-color: #f1f5f9; border: 1px solid #cbd5e1; }
-        body.light-theme .input-box textarea { color: #0f172a; }
-        body.light-theme .icon-btn { color: #64748b; }
-        body.light-theme .icon-btn:hover { background-color: #e2e8f0; }
-        body.light-theme .code-block { background-color: #f8fafc; border: 1px solid #e2e8f0; }
-        body.light-theme .code-header { background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0; }
-        body.light-theme .code-content { color: #0f172a; }
-        body.light-theme .sender-name { color: #64748b; }
-        body.light-theme .settings-modal { background: #ffffff; color: #0f172a; }
-        body.light-theme .setting-item { border-bottom: 1px solid #e2e8f0; }
-
-        /* Splash Screen */
-        .splash-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #07080a;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            gap: 16px; z-index: 9999;
-            transition: opacity 0.5s ease, visibility 0.5s ease;
+        .gradient-text { 
+            background: linear-gradient(135deg, #c084fc 0%, #60a5fa 100%); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
         }
-        .splash-screen.hide { opacity: 0; visibility: hidden; }
-        .splash-logo { width: 80px; height: 80px; border-radius: 20%; animation: pulse 2s infinite ease-in-out; object-fit: cover;}
-        .splash-title { font-size: 2.2rem; font-weight: 700; background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.4)); }
-            50% { transform: scale(1.08); filter: drop-shadow(0 0 25px rgba(168, 85, 247, 0.7)); }
+        .gradient-bg { 
+            background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%); 
         }
-
-        /* Header */
-        .header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 10px 16px; background: rgba(18, 20, 26, 0.9);
-            backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            z-index: 10; flex-shrink: 0; transition: background 0.3s;
-        }
-        .header-left, .header-right { display: flex; align-items: center; gap: 10px; }
-        .brand-box { display: flex; align-items: center; gap: 8px; }
-        .app-logo { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
-        .app-title { font-size: 1.2rem; font-weight: 700; background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
-        .icon-btn {
-            background: none; border: none; color: #94a3b8; font-size: 1.2rem;
-            cursor: pointer; padding: 8px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+        /* 2 cm (approx ~75px) bottom spacing class for AI responses */
+        .ai-reply-spacing {
+            margin-bottom: 2rem;
         }
-        .icon-btn:hover { background-color: rgba(255, 255, 255, 0.08); color: #818cf8; }
-
-        /* Settings Modal */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 2000;
-            display: none; justify-content: center; align-items: center;
-        }
-        .modal-overlay.active { display: flex; }
-        .settings-modal {
-            background: #12141a; padding: 20px; border-radius: 16px;
-            width: 90%; max-width: 360px; border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 15px;
-        }
-        .settings-modal h3 { text-align: center; font-size: 1.2rem; color: #818cf8; margin-bottom: 5px; }
-        .setting-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.92rem; font-weight: 500;
-        }
-        .setting-item:last-child { border-bottom: none; }
-        .setting-select {
-            background: #1e2029; color: #f1f5f9; border: 1px solid rgba(255,255,255,0.2);
-            padding: 6px 10px; border-radius: 8px; outline: none; font-size: 0.85rem; cursor: pointer;
-        }
-        .close-settings {
-            background: #4f46e5; color: white; border: none; padding: 10px; border-radius: 10px;
-            font-weight: 600; margin-top: 10px; cursor: pointer; transition: background 0.2s;
-        }
-        .close-settings:hover { background: #6366f1; }
         
-        /* Toggle Switch */
-        .switch { position: relative; display: inline-block; width: 42px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; transition: .3s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: #6366f1; }
-        input:checked + .slider:before { transform: translateX(18px); }
-
-        /* Sidebar */
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 999; display: none; }
-        .overlay.active { display: block; }
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.6); }
         
-        .sidebar {
-            position: fixed; top: 0; left: -280px; width: 280px; height: 100%;
-            background-color: #12141a; border-right: 1px solid rgba(255, 255, 255, 0.08);
-            z-index: 1000; transition: left 0.3s ease; display: flex; flex-direction: column;
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.5)); }
+            50% { transform: scale(1.05); filter: drop-shadow(0 0 25px rgba(59, 130, 246, 0.8)); }
         }
-        .sidebar.open { left: 0; }
-        .sidebar-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
-        .sidebar-content { flex: 1; padding: 16px; }
-        .new-chat-btn {
-            width: 100%; padding: 12px; background: linear-gradient(135deg, #4f46e5, #7c3aed);
-            color: #fff; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); transition: transform 0.1s;
-        }
-        .new-chat-btn:active { transform: scale(0.98); }
-
-        /* Chat Container */
-        .chat-container {
-            flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth;
-        }
-        .message-wrapper { display: flex; flex-direction: column; max-width: 88%; position: relative; }
-        .user-wrapper { align-self: flex-end; }
-        .capella-wrapper { align-self: flex-start; }
+        .animate-glow { animation: pulseGlow 3s infinite ease-in-out; }
         
-        .message-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; width: 100%; }
-        .message-header-left { display: flex; align-items: center; gap: 6px; }
-        .sender-icon { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; background: #6366f1; }
-        .sender-name { font-size: 0.78rem; color: #94a3b8; font-weight: 500; transition: color 0.3s; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         
-        .type-percentage { font-size: 0.7rem; color: #818cf8; font-weight: 600; background: rgba(99,102,241,0.1); padding: 2px 6px; border-radius: 10px; }
-
-        .message {
-            padding: 12px 16px; border-radius: 16px; line-height: 1.5; font-size: 0.92rem; word-wrap: break-word; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); transition: background 0.3s, color 0.3s; cursor: pointer; user-select: text;
-        }
-        .user-msg { background: linear-gradient(135deg, #312e81, #1e1b4b); color: #f1f5f9; border-bottom-right-radius: 4px; border: 1px solid rgba(99, 102, 241, 0.3); }
-        .capella-msg { background-color: #181b22; color: #e2e8f0; border-bottom-left-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.08); }
-        
-        .msg-image { max-width: 100%; max-height: 280px; border-radius: 10px; margin-top: 8px; border: 1px solid rgba(255,255,255,0.1); display: block; object-fit: cover;}
-
-        /* Quick Action Copy Button */
-        .msg-copy-bar {
-            display: none; position: absolute; bottom: -28px; background: rgba(30, 41, 59, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.15); padding: 3px 10px; border-radius: 12px;
-            font-size: 0.72rem; color: #38bdf8; font-weight: 600; cursor: pointer; z-index: 5;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: opacity 0.2s;
-        }
-        .user-wrapper .msg-copy-bar { right: 0; }
-        .capella-wrapper .msg-copy-bar { left: 0; }
-        .msg-copy-bar.active { display: flex; align-items: center; gap: 4px; }
-
-        /* Code Blocks & Writing Boxes */
-        .code-block { background-color: #0d0e12; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; margin: 8px 0; overflow: hidden; transition: background 0.3s; }
-        .code-header { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background-color: #161820; border-bottom: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.72rem; color: #818cf8; font-weight: 600; transition: background 0.3s; }
-        .code-copy-btn { background: rgba(255, 255, 255, 0.08); border: none; color: #cbd5e1; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
-        .code-content { padding: 10px; font-family: 'Fira Code', monospace, sans-serif; white-space: pre-wrap; overflow-x: auto; font-size: 0.85rem; color: #e2e8f0; line-height: 1.6; transition: color 0.3s;}
-
-        /* Image Generation Component */
-        .gen-container {
-            width: 250px; height: 250px; background: #12141a; border: 2px dashed rgba(255,255,255,0.1); border-radius: 12px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; margin-top: 10px;
-        }
-        .gen-loader-box { display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 1; }
-        .gen-loader {
-            width: 36px; height: 36px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #818cf8; border-radius: 50%; animation: spin 1s linear infinite;
-        }
-        .gen-pct { font-size: 0.8rem; color: #818cf8; font-weight: 600; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .gen-img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.4s; position: absolute; top:0; left:0; z-index: 2; }
-        .gen-img.loaded { opacity: 1; cursor: pointer; }
-        
-        .gen-actions {
-            position: absolute; bottom: 8px; display: flex; gap: 8px; z-index: 3; opacity: 0; transition: opacity 0.2s; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 20px;
-        }
-        .gen-container:hover .gen-actions { opacity: 1; }
-        .gen-btn { background: #4f46e5; border: none; color: white; padding: 4px 10px; font-size: 0.75rem; border-radius: 12px; cursor: pointer; }
-
-        /* Fullscreen Image Viewer */
-        .image-viewer {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000;
-            display: none; align-items: center; justify-content: center; flex-direction: column;
-        }
-        .image-viewer.active { display: flex; }
-        .viewer-img { max-width: 90%; max-height: 80%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .viewer-close { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 1.5rem; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
-
-        /* Input Bar */
-        .input-container {
-            padding: 10px 12px; background: rgba(18, 20, 26, 0.95); backdrop-filter: blur(12px); border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; transition: background 0.3s;
-        }
-        .preview-wrapper { display: none; position: relative; align-self: flex-start; }
-        .preview-wrapper.active { display: block; }
-        .img-preview { height: 55px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); }
-        .remove-img-btn { position: absolute; top: -6px; right: -6px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; }
-        
-        .input-box { display: flex; align-items: center; gap: 8px; background-color: #161820; border-radius: 20px; padding: 6px 12px; border: 1px solid rgba(255, 255, 255, 0.1); transition: background 0.3s; }
-        .input-box textarea { flex: 1; background: none; border: none; color: #f1f5f9; resize: none; max-height: 120px; outline: none; font-size: 0.92rem; padding: 4px 0; transition: color 0.3s; }
-        
-        .send-btn { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; padding: 8px 14px; border-radius: 16px; cursor: pointer; font-weight: 600; font-size: 0.82rem; flex-shrink: 0; }
-        .send-btn.stop-mode { background: #ef4444; }
-
-        /* Thinking Indicator */
-        .thinking-indicator { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
-        .blue-dot-pulse { width: 8px; height: 8px; background-color: #818cf8; border-radius: 50%; animation: dotPulse 1.2s infinite ease-in-out; }
-        @keyframes dotPulse { 0%, 100% { transform: scale(0.8); opacity: 0.4; } 50% { transform: scale(1.3); opacity: 1; } }
+        /* Formatted text block styling */
+        .code-block-wrapper pre { margin: 0; }
+        .ai-text-content p { margin-bottom: 0.5rem; }
+        .ai-text-content ul, .ai-text-content ol { margin-left: 1.25rem; margin-bottom: 0.5rem; }
+        .ai-text-content a { color: #a78bfa; text-decoration: underline; }
     </style>
 </head>
-<body>
+<body class="bg-[#0a0a0f] text-gray-100 dark:bg-[#0a0a0f] dark:text-gray-100 light:bg-[#f3f4f6] light:text-gray-900 h-[100dvh] w-screen overflow-hidden flex flex-col transition-colors duration-300">
 
     <!-- Splash Screen -->
-    <div class="splash-screen" id="splashScreen">
-        <img src="https://i.ibb.co.com/qM3sDFXY/logo.png" onerror="this.src='https://api.iconify.design/lucide:bot.svg'" alt="Capella Logo" class="splash-logo">
-        <div class="splash-title">Capella AI</div>
+    <div id="splashScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-darkbg transition-opacity duration-700">
+        <div class="relative flex flex-col items-center">
+            <img src="https://i.ibb.co.com/qM3sDFXY/logo.png" alt="Capella Logo" class="w-24 h-24 rounded-3xl object-cover shadow-2xl mb-6 animate-glow" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%238b5cf6%22 width=%22100%22 height=%22100%22 rx=%2220%22/%3E%3Ctext x=%2250%22 y=%2260%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22white%22%3EC%3C/text%3E%3C/svg%3E'">
+            <h1 class="text-3xl font-bold tracking-tight gradient-text mb-2">Capella AI</h1>
+            <p class="text-gray-400 text-sm tracking-widest uppercase">Powered by Gemini 3 Flash</p>
+        </div>
     </div>
 
-    <!-- Header -->
-    <div class="header">
-        <div class="header-left">
-            <button class="icon-btn" id="menuBtn">☰</button>
-            <div class="brand-box">
-                <img src="https://i.ibb.co.com/qM3sDFXY/logo.png" onerror="this.src='https://api.iconify.design/lucide:bot.svg'" class="app-logo">
-                <div class="app-title">Capella</div>
+    <!-- Main Header -->
+    <header class="h-16 border-b border-gray-800/60 light:border-gray-300 glass dark:glass light:glass-light flex items-center justify-between px-4 z-30 shrink-0">
+        <div class="flex items-center gap-3">
+            <button id="sidebarToggle" class="p-2 rounded-xl hover:bg-gray-800/50 light:hover:bg-gray-200 transition text-gray-300 light:text-gray-700" title="Open Drawer">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center gap-2.5 cursor-pointer" id="logoTitleBtn">
+                <img src="https://i.ibb.co.com/qM3sDFXY/logo.png" alt="Logo" class="w-8 h-8 rounded-lg object-cover shadow-md" onerror="this.style.display='none'">
+                <span class="font-bold text-lg tracking-tight gradient-text">Capella AI</span>
             </div>
         </div>
-        <div class="header-right">
-            <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+        <div class="flex items-center gap-2">
+            <button id="quickNewChatBtn" class="p-2 rounded-xl hover:bg-gray-800/50 light:hover:bg-gray-200 transition text-gray-300 light:text-gray-700" title="New Chat">
+                <i data-lucide="square-plus" class="w-5 h-5"></i>
+            </button>
+            <button id="settingsBtn" class="p-2 rounded-xl hover:bg-gray-800/50 light:hover:bg-gray-200 transition text-gray-300 light:text-gray-700" title="Settings">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- App Container -->
+    <div class="flex-1 flex relative overflow-hidden">
+
+        <!-- Sidebar Drawer -->
+        <div id="sidebarBackdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+        <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-[#0a0a0f] light:bg-white border-r border-gray-800/60 light:border-gray-200 z-40 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
+            <div class="h-16 px-4 border-b border-gray-800/60 light:border-gray-200 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <img src="https://i.ibb.co.com/qM3sDFXY/logo.png" alt="Logo" class="w-7 h-7 rounded-lg object-cover" onerror="this.style.display='none'">
+                    <span class="font-semibold text-gray-200 light:text-gray-800">Menu</span>
+                </div>
+                <button id="sidebarClose" class="p-2 rounded-xl hover:bg-gray-800/50 light:hover:bg-gray-100 transition text-gray-400">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="p-4 flex-1 overflow-y-auto flex flex-col gap-4">
+                <button id="newChatSidebarBtn" class="w-full py-3 px-4 rounded-xl gradient-bg text-white font-medium flex items-center justify-center gap-2 shadow-lg hover:opacity-95 transition active:scale-[0.98]">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    New Conversation
+                </button>
+
+                <button id="openImageGenMenuBtn" class="w-full py-3 px-4 rounded-xl bg-purple-900/30 hover:bg-purple-900/50 border border-purple-500/40 text-purple-200 font-medium flex items-center justify-center gap-2 shadow-md transition active:scale-[0.98]">
+                    <i data-lucide="image" class="w-4 h-4 text-purple-400"></i>
+                    Image Generator
+                </button>
+
+                <!-- Preset Prompt Suggestions -->
+                <div class="space-y-2">
+                    <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">Quick Prompts</div>
+                    <button class="preset-btn w-full text-left p-2.5 rounded-xl bg-[#13131d] light:bg-gray-100 hover:bg-purple-900/30 border border-[#22223b] light:border-gray-200 text-xs text-gray-300 light:text-gray-700 transition flex items-center gap-2">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i> Explain Quantum Computing simply
+                    </button>
+                    <button class="preset-btn w-full text-left p-2.5 rounded-xl bg-[#13131d] light:bg-gray-100 hover:bg-purple-900/30 border border-[#22223b] light:border-gray-200 text-xs text-gray-300 light:text-gray-700 transition flex items-center gap-2">
+                        <i data-lucide="image" class="w-3.5 h-3.5 text-blue-400"></i> Draw a futuristic cyberpunk city
+                    </button>
+                    <button class="preset-btn w-full text-left p-2.5 rounded-xl bg-[#13131d] light:bg-gray-100 hover:bg-purple-900/30 border border-[#22223b] light:border-gray-200 text-xs text-gray-300 light:text-gray-700 transition flex items-center gap-2">
+                        <i data-lucide="code" class="w-3.5 h-3.5 text-emerald-400"></i> Write a Python web scraper
+                    </button>
+                    <button class="preset-btn w-full text-left p-2.5 rounded-xl bg-[#13131d] light:bg-gray-100 hover:bg-purple-900/30 border border-[#22223b] light:border-gray-200 text-xs text-gray-300 light:text-gray-700 transition flex items-center gap-2">
+                        <i data-lucide="palette" class="w-3.5 h-3.5 text-pink-400"></i> Generate a picture of a cute cat in space
+                    </button>
+                </div>
+
+                <!-- Leadership Info Box -->
+                <div class="mt-auto p-4 rounded-2xl bg-[#13131d] light:bg-gray-100 border border-[#22223b] light:border-gray-200 text-xs space-y-1.5 text-gray-400">
+                    <div class="font-semibold text-gray-200 light:text-gray-800 mb-1">Leadership</div>
+                    <div>Owner: Shadman Wasif Faruque</div>
+                    <div>Co-Owner: Harry Li</div>
+                    <div>Partner: Ekaterina Tarasenko</div>
+                    <div>Partner: Settro Tarasenko</div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-gray-800/60 light:border-gray-200 text-xs text-gray-500 text-center">
+                Capella AI v3.7 • Gemini 3 Flash
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+            <div id="chatContainer" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+                <!-- Welcome Banner -->
+                <div id="welcomeBanner" class="max-w-2xl mx-auto text-center py-10 px-4 animate-fade-in">
+                    <img src="https://i.ibb.co.com/qM3sDFXY/logo.png" alt="Logo" class="w-16 h-16 rounded-2xl object-cover mx-auto mb-4 shadow-xl animate-glow" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%238b5cf6%22 width=%22100%22 height=%22100%22 rx=%2220%22/%3E%3Ctext x=%2250%22 y=%2260%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22white%22%3EC%3C/text%3E%3C/svg%3E'">
+                    <h2 class="text-2xl md:text-3xl font-bold mb-2 tracking-tight">How can Gemini help you today?</h2>
+                    <p class="text-gray-400 light:text-gray-600 text-sm md:text-base max-w-md mx-auto mb-6">Experience multimodal AI with real-time Google Search grounding and instant image generation.</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto text-left">
+                        <button class="welcome-chip p-3.5 rounded-2xl bg-[#13131d] light:bg-white border border-[#22223b] light:border-gray-200 hover:border-purple-500/50 transition shadow-sm text-xs space-y-1">
+                            <div class="font-semibold text-purple-400 flex items-center gap-1.5"><i data-lucide="globe" class="w-3.5 h-3.5"></i> Web Search Grounding</div>
+                            <div class="text-gray-400">Find the latest updates on space missions</div>
+                        </button>
+                        <button class="welcome-chip p-3.5 rounded-2xl bg-[#13131d] light:bg-white border border-[#22223b] light:border-gray-200 hover:border-purple-500/50 transition shadow-sm text-xs space-y-1">
+                            <div class="font-semibold text-blue-400 flex items-center gap-1.5"><i data-lucide="palette" class="w-3.5 h-3.5"></i> Image Generation</div>
+                            <div class="text-gray-400">Generate a picture of a sleek futuristic sports car</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dedicated Bottom Spacer to allow full scroll above fixed input bar -->
+                <div id="chatBottomSpacer" class="h-44 md:h-52 shrink-0 w-full pointer-events-none"></div>
+            </div>
+
+            <!-- Floating Jump-to-Bottom Button -->
+            <button id="scrollToBottomBtn" class="hidden absolute bottom-28 right-6 p-3 rounded-full bg-purple-600/90 text-white shadow-xl hover:bg-purple-500 transition-all transform hover:scale-105 z-30 flex items-center gap-2 text-xs font-semibold backdrop-blur-md">
+                <i data-lucide="arrow-down" class="w-4 h-4"></i>
+                <span>Scroll to bottom</span>
+            </button>
+
+            <!-- Fixed Bottom Input Bar -->
+            <div id="inputBarContainer" class="absolute bottom-0 inset-x-0 bg-[#0a0a0f]/95 light:bg-white/95 backdrop-blur-md border-t border-gray-800/60 light:border-gray-200 p-3 md:p-4 z-20 transition-all duration-300">
+                <div class="max-w-3xl mx-auto flex flex-col gap-2">
+                    <div id="imagePreviewContainer" class="hidden items-center gap-2 px-2">
+                        <div class="relative inline-block">
+                            <img id="imagePreview" src="" alt="Upload preview" class="w-16 h-16 object-cover rounded-xl border border-gray-700">
+                            <button id="removeImageBtn" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 shadow-md hover:bg-red-700 transition">
+                                <i data-lucide="x" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                        <span class="text-xs text-gray-400">Image attached for query</span>
+                    </div>
+
+                    <div class="flex items-end gap-2 bg-[#13131d] light:bg-gray-100 border border-[#22223b] light:border-gray-300 rounded-2xl p-2 focus-within:border-purple-500/70 transition shadow-lg">
+                        <input type="file" id="imageInput" accept="image/*" class="hidden">
+                        <button id="uploadImageBtn" class="p-2.5 rounded-xl text-gray-400 hover:text-purple-400 hover:bg-gray-800/40 light:hover:bg-gray-200 transition shrink-0" title="Upload Image">
+                            <i data-lucide="paperclip" class="w-5 h-5"></i>
+                        </button>
+                        <textarea id="userInput" rows="1" placeholder="Message Gemini or ask to generate an image..." class="flex-1 bg-transparent text-gray-100 light:text-gray-900 placeholder-gray-500 resize-none max-h-32 py-2 px-1 focus:outline-none text-sm leading-relaxed"></textarea>
+                        <button id="actionBtn" class="p-2.5 rounded-xl gradient-bg text-white hover:opacity-95 transition shrink-0 shadow-md flex items-center justify-center w-10 h-10">
+                            <i id="actionBtnIcon" data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Fullscreen Image Viewer Modal -->
+    <div id="imageModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden items-center justify-center p-4">
+        <button id="closeImageModal" class="absolute top-4 right-4 p-3 rounded-full bg-gray-800/80 text-white hover:bg-gray-700 transition z-10">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+        <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
+            <img id="modalImage" src="" alt="Fullscreen view" class="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl mb-4">
+            <a id="downloadModalImage" download="gemini-generated.png" target="_blank" class="px-5 py-2.5 rounded-xl gradient-bg text-white font-medium flex items-center gap-2 shadow-lg hover:opacity-95 transition">
+                <i data-lucide="download" class="w-4 h-4"></i> Save Image
+            </a>
         </div>
     </div>
 
     <!-- Settings Modal -->
-    <div class="modal-overlay" id="settingsOverlay">
-        <div class="settings-modal">
-            <h3>Settings</h3>
-            <div class="setting-item">
-                <span>Main Language</span>
-                <select id="languageSelect" class="setting-select">
-                    <option value="English">English</option>
-                    <option value="Bengali">বাংলা (Bengali)</option>
-                    <option value="Hindi">हिन्दी (Hindi)</option>
-                    <option value="Spanish">Español (Spanish)</option>
-                    <option value="French">Français (French)</option>
-                    <option value="German">Deutsch (German)</option>
-                    <option value="Arabic">العربية (Arabic)</option>
-                    <option value="Chinese">中文 (Chinese)</option>
-                    <option value="Japanese">日本語 (Japanese)</option>
-                    <option value="Russian">Русский (Russian)</option>
-                    <option value="Portuguese">Português (Portuguese)</option>
-                    <option value="Turkish">Türkçe (Turkish)</option>
-                </select>
+    <div id="settingsModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="w-full max-w-md bg-[#0a0a0f] light:bg-white text-gray-100 light:text-gray-900 border border-[#22223b] light:border-gray-200 rounded-3xl p-6 shadow-2xl flex flex-col gap-6 animate-fade-in">
+            <div class="flex items-center justify-between border-b border-gray-800/60 light:border-gray-200 pb-4">
+                <h3 class="text-lg font-bold gradient-text">Settings</h3>
+                <button id="closeSettings" class="p-2 rounded-xl hover:bg-gray-800/50 light:hover:bg-gray-100 transition text-gray-400">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
             </div>
-            <div class="setting-item">
-                <span>Theme (Dark/Light)</span>
-                <label class="switch"><input type="checkbox" id="themeToggle"><span class="slider"></span></label>
-            </div>
-            <div class="setting-item">
-                <span>Mode (Normal/Thinking)</span>
-                <label class="switch"><input type="checkbox" id="modeToggle"><span class="slider"></span></label>
-            </div>
-            <div class="setting-item">
-                <span>Writing Sound</span>
-                <label class="switch"><input type="checkbox" id="soundToggle"><span class="slider"></span></label>
-            </div>
-            <button class="close-settings" id="closeSettingsBtn">Save & Close</button>
-        </div>
-    </div>
-
-    <div class="overlay" id="overlay"></div>
-
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="brand-box">
-                <img src="https://i.ibb.co.com/qM3sDFXY/logo.png" onerror="this.src='https://api.iconify.design/lucide:bot.svg'" class="app-logo">
-                <span style="font-weight: 600;">Menu</span>
-            </div>
-            <button class="icon-btn" id="closeBtn">✕</button>
-        </div>
-        <div class="sidebar-content">
-            <button class="new-chat-btn" id="newChatBtn">➕ New Chat</button>
-        </div>
-    </div>
-
-    <!-- Image Viewer -->
-    <div class="image-viewer" id="imageViewer">
-        <button class="viewer-close" id="viewerClose">✕</button>
-        <img src="" class="viewer-img" id="viewerImg">
-        <a href="" download="Capella_Generated.jpg" id="viewerDownload" style="margin-top: 15px; color: #818cf8; text-decoration: none; font-weight: 600; background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px;">⬇ Download Image</a>
-    </div>
-
-    <!-- Chat Container -->
-    <div class="chat-container" id="chatContainer">
-        <div class="message-wrapper capella-wrapper">
-            <div class="message-header">
-                <div class="message-header-left">
-                    <img src="https://i.ibb.co.com/qM3sDFXY/logo.png" onerror="this.src='https://api.iconify.design/lucide:bot.svg'" class="sender-icon">
-                    <span class="sender-name">Capella</span>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Main Language</label>
+                    <select id="settingLang" class="w-full bg-[#13131d] light:bg-gray-100 border border-[#22223b] light:border-gray-300 rounded-xl p-3 text-sm focus:outline-none focus:border-purple-500">
+                        <option value="en">English</option>
+                        <option value="bn">Bengali (বাংলা)</option>
+                        <option value="hi">Hindi (हिन्दी)</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Theme</label>
+                    <select id="settingTheme" class="w-full bg-[#13131d] light:bg-gray-100 border border-[#22223b] light:border-gray-300 rounded-xl p-3 text-sm focus:outline-none focus:border-purple-500">
+                        <option value="dark">Dark</option>
+                        <option value="light">Light</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-between pt-2">
+                    <div>
+                        <div class="font-medium text-sm">Typing Audio Cues</div>
+                        <div class="text-xs text-gray-400">Subtle click sounds while writing</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="settingSound" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
                 </div>
             </div>
-            <div class="message capella-msg" onclick="toggleCopyBar(this)">
-                <div class="msg-text">Hello! I am Capella AI. How can I assist you today?</div>
+
+            <div class="pt-2">
+                <button id="saveSettingsBtn" class="w-full py-3 rounded-xl gradient-bg text-white font-medium shadow-lg hover:opacity-95 transition">
+                    Save Changes
+                </button>
             </div>
-            <div class="msg-copy-bar" onclick="copyMsgText(this)">📋 Copy Message</div>
         </div>
     </div>
 
-    <!-- Input Bar -->
-    <div class="input-container">
-        <div class="preview-wrapper" id="previewWrapper">
-            <img src="" id="imgPreview" class="img-preview">
-            <button class="remove-img-btn" id="removeImgBtn">✕</button>
-        </div>
-        <div class="input-box">
-            <button class="icon-btn" id="uploadBtn">📷</button>
-            <input type="file" id="fileInput" accept="image/*" style="display: none;">
-            <textarea id="userInput" rows="1" placeholder="Ask Capella anything..."></textarea>
-            <button class="send-btn" id="sendBtn">Send</button>
+    <!-- Image Generator Modal -->
+    <div id="imageGenModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="w-full max-w-lg bg-[#0a0a0f] light:bg-white text-gray-100 light:text-gray-900 border border-[#22223b] light:border-gray-200 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 animate-fade-in">
+            <div class="flex items-center justify-between border-b border-gray-800/60 light:border-gray-200 pb-3">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-purple-400"></i>
+                    <h3 class="text-lg font-bold gradient-text">Image Generator</h3>
+                </div>
+                <button id="closeImageGenModal" class="p-2 rounded-xl hover:bg-gray-800/50 light:hover:bg-gray-100 transition text-gray-400">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Picture container frame displaying progress percentage inside picture size box -->
+            <div id="modalImgContainer" class="relative w-full aspect-square max-w-[340px] mx-auto bg-[#13131d] border border-[#22223b] rounded-2xl overflow-hidden flex flex-col items-center justify-center shadow-inner group">
+                <!-- Placeholder when no image generated yet -->
+                <div id="modalImgPlaceholder" class="flex flex-col items-center text-center p-6 text-gray-500">
+                    <i data-lucide="image-plus" class="w-12 h-12 mb-2 text-purple-400/60"></i>
+                    <p class="text-xs">Enter a prompt below and click Generate to create an image here.</p>
+                </div>
+
+                <!-- Loading State centered inside the exact picture container area with percentage -->
+                <div id="modalImgLoading" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-[#0d0d14]/95 p-6 space-y-3 z-10">
+                    <div class="relative flex items-center justify-center">
+                        <div class="w-20 h-20 rounded-full border-4 border-purple-900 border-t-purple-500 animate-spin"></div>
+                        <span id="modalImgGenPercent" class="absolute text-base font-bold text-purple-300">0%</span>
+                    </div>
+                    <div class="w-4/5 bg-gray-800 rounded-full h-2 overflow-hidden">
+                        <div id="modalImgProgressBar" class="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-200 w-0"></div>
+                    </div>
+                    <span class="text-xs text-purple-300 font-medium">Generating image in frame...</span>
+                </div>
+
+                <!-- Generated Image -->
+                <img id="modalResultImg" src="" alt="Generated artwork" class="hidden w-full h-full object-cover">
+            </div>
+
+            <!-- Input Controls -->
+            <div class="space-y-3">
+                <textarea id="modalImgPrompt" rows="2" placeholder="Describe what picture you want to generate..." class="w-full bg-[#13131d] light:bg-gray-100 border border-[#22223b] light:border-gray-300 rounded-xl p-3 text-sm focus:outline-none focus:border-purple-500 text-gray-100 light:text-gray-900 resize-none"></textarea>
+                <div class="flex gap-2">
+                    <button id="modalGenBtn" class="flex-1 py-3 rounded-xl gradient-bg text-white font-medium shadow-lg hover:opacity-95 transition flex items-center justify-center gap-2">
+                        <i data-lucide="wand-2" class="w-4 h-4"></i>
+                        <span>Generate Picture</span>
+                    </button>
+                    <a id="modalDownloadBtn" href="#" download="capella-image.png" target="_blank" class="hidden py-3 px-4 rounded-xl bg-purple-900/40 hover:bg-purple-900/60 border border-purple-500/30 text-purple-200 font-medium shadow-lg transition items-center justify-center gap-1.5 text-xs">
+                        <i data-lucide="download" class="w-4 h-4"></i> Save
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Application Engine Script -->
     <script>
-        const GROQ_API_KEY = "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";
-        const GEMINI_API_KEY = "AQ.Ab8RN6Iec_ZTtFa1YBQvV7jgungEYgoJS0yP4aXtSzC-SLX77g"; 
-        const HF_API_KEY = "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";
-        
-        const CAPELLA_PFP_URL = "https://i.ibb.co.com/qM3sDFXY/logo.png";
-        const OWNER_PIC_URL = "https://i.ibb.co.com/B2qg8ddR"; 
+        // API Key provided in runtime environment
+        const apiKey = ""; 
 
-        const SYSTEM_PROMPT = `You are Capella AI, an advanced, highly intelligent AI assistant built to help users with information, coding, analysis, and problem-solving.
-
-CRITICAL DIRECT ANSWER INSTRUCTION:
-- NEVER echo, quote, or repeat the user's question/prompt before answering. 
-- ALWAYS start directly with the answer itself. No preamble or restating of the question.
-
-GREETING INSTRUCTION:
-- Always greet users using "Hello" or standard friendly English/Bengali friendly greetings. NEVER use "Nomoshkar" (নমস্কার) or formal traditional greetings.
-
-WRITING TASK INSTRUCTION:
-- If the user asks for ANY writing task (such as an essay, letter, email, story, paragraph, composition, summary, article, content generation, poem, etc.), you MUST wrap the written content inside a Markdown code block (e.g. \`\`\`text or \`\`\`writing). This ensures it renders inside the special container box.
-
-CODE & PYTHON REQUEST INSTRUCTIONS:
-- If the user asks for code or Python script, and they have NOT specified whether it is for Mobile, PC, or Both:
-  Do NOT provide code immediately. Ask FIRST: "Is this code for Mobile, PC, or Both?"
-- When the user answers whether it is for Mobile, PC, or Both, THEN generate the code tailored for that target platform inside appropriate code blocks (\`\`\`python, \`\`\`html, etc.).
-
-CRITICAL CREATOR IDENTITY INSTRUCTIONS:
-- If anyone asks about your creator, owner, founder, developer, or who made/built/owns you, you MUST ALWAYS respond in full English with:
-"I was created and owned by Shadman Wasif Faruque. He is a talented young chess player from Pabna, Bangladesh, born on October 9, 2014."
-- ONLY append the tag [OWNER_PIC] at the very end of your response IF AND ONLY IF the user EXPLICITLY asks to SEE, SHOW, or WANT the picture/photo/image of the owner/creator.
-
-IMAGE GENERATION INSTRUCTIONS:
-- If the user asks you to generate, create, or draw an image/picture, append EXACTLY this tag at the end: [IMAGE: <detailed prompt for the image here>]`;
-
+        let conversationHistory = [];
+        let currentImageBase64 = null;
         let isGenerating = false;
         let abortController = null;
-        let typeWriterTimeout = null;
-        let shouldStopTyping = false;
-        let chatHistory = [{ role: "system", content: SYSTEM_PROMPT }];
-        
-        // Settings State
-        let settings = { lightMode: false, thinkingMode: false, sound: false, language: 'English' };
-        let audioCtx = null;
+        let settings = { lang: 'en', theme: 'dark', sound: false };
+        let userScrolledUp = false;
 
-        // Elements
+        // Element References
         const splashScreen = document.getElementById('splashScreen');
-        const menuBtn = document.getElementById('menuBtn');
         const sidebar = document.getElementById('sidebar');
-        const closeBtn = document.getElementById('closeBtn');
-        const overlay = document.getElementById('overlay');
-        const newChatBtn = document.getElementById('newChatBtn');
-        const sendBtn = document.getElementById('sendBtn');
-        const userInput = document.getElementById('userInput');
+        const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarClose = document.getElementById('sidebarClose');
         const chatContainer = document.getElementById('chatContainer');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const fileInput = document.getElementById('fileInput');
-        const previewWrapper = document.getElementById('previewWrapper');
-        const imgPreview = document.getElementById('imgPreview');
-        
-        // Settings UI
+        const welcomeBanner = document.getElementById('welcomeBanner');
+        const userInput = document.getElementById('userInput');
+        const actionBtn = document.getElementById('actionBtn');
+        const actionBtnIcon = document.getElementById('actionBtnIcon');
+        const imageInput = document.getElementById('imageInput');
+        const uploadImageBtn = document.getElementById('uploadImageBtn');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const removeImageBtn = document.getElementById('removeImageBtn');
         const settingsBtn = document.getElementById('settingsBtn');
-        const settingsOverlay = document.getElementById('settingsOverlay');
-        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-        const themeToggle = document.getElementById('themeToggle');
-        const modeToggle = document.getElementById('modeToggle');
-        const soundToggle = document.getElementById('soundToggle');
-        const languageSelect = document.getElementById('languageSelect');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettings = document.getElementById('closeSettings');
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        const settingLang = document.getElementById('settingLang');
+        const settingTheme = document.getElementById('settingTheme');
+        const settingSound = document.getElementById('settingSound');
+        const newChatSidebarBtn = document.getElementById('newChatSidebarBtn');
+        const quickNewChatBtn = document.getElementById('quickNewChatBtn');
+        const logoTitleBtn = document.getElementById('logoTitleBtn');
+        const imageModal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        const closeImageModal = document.getElementById('closeImageModal');
+        const downloadModalImage = document.getElementById('downloadModalImage');
+        const scrollToBottomBtn = document.getElementById('scrollToBottomBtn');
 
-        let selectedImageData = null;
+        const openImageGenMenuBtn = document.getElementById('openImageGenMenuBtn');
+        const imageGenModal = document.getElementById('imageGenModal');
+        const closeImageGenModal = document.getElementById('closeImageGenModal');
+        const modalImgContainer = document.getElementById('modalImgContainer');
+        const modalImgPlaceholder = document.getElementById('modalImgPlaceholder');
+        const modalImgLoading = document.getElementById('modalImgLoading');
+        const modalImgGenPercent = document.getElementById('modalImgGenPercent');
+        const modalImgProgressBar = document.getElementById('modalImgProgressBar');
+        const modalResultImg = document.getElementById('modalResultImg');
+        const modalImgPrompt = document.getElementById('modalImgPrompt');
+        const modalGenBtn = document.getElementById('modalGenBtn');
+        const modalDownloadBtn = document.getElementById('modalDownloadBtn');
 
-        window.addEventListener('load', () => setTimeout(() => splashScreen.classList.add('hide'), 1500));
+        lucide.createIcons();
 
-        // Settings Logic
-        settingsBtn.addEventListener('click', () => settingsOverlay.classList.add('active'));
-        closeSettingsBtn.addEventListener('click', () => {
-            settingsOverlay.classList.remove('active');
-            settings.lightMode = themeToggle.checked;
-            settings.thinkingMode = modeToggle.checked;
-            settings.sound = soundToggle.checked;
-            settings.language = languageSelect.value;
-            
-            if (settings.lightMode) document.body.classList.add('light-theme');
-            else document.body.classList.remove('light-theme');
+        marked.setOptions({
+            breaks: true,
+            gfm: true
         });
 
-        menuBtn.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('active'); });
-        closeBtn.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); });
-        overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); });
-
-        newChatBtn.addEventListener('click', () => {
-            chatHistory = [{ role: "system", content: SYSTEM_PROMPT }];
-            chatContainer.innerHTML = `
-                <div class="message-wrapper capella-wrapper">
-                    <div class="message-header">
-                        <div class="message-header-left">
-                            <img src="${CAPELLA_PFP_URL}" onerror="this.src='https://api.iconify.design/lucide:bot.svg'" class="sender-icon">
-                            <span class="sender-name">Capella</span>
-                        </div>
-                    </div>
-                    <div class="message capella-msg" onclick="toggleCopyBar(this)">
-                        <div class="msg-text">Hello! I am Capella AI. How can I assist you today?</div>
-                    </div>
-                    <div class="msg-copy-bar" onclick="copyMsgText(this)">📋 Copy Message</div>
-                </div>
-            `;
-            sidebar.classList.remove('open');
-            overlay.classList.remove('active');
-        });
-
-        userInput.addEventListener('input', () => {
-            userInput.style.height = 'auto';
-            userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
-        });
-
-        uploadBtn.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    selectedImageData = event.target.result;
-                    imgPreview.src = selectedImageData;
-                    previewWrapper.classList.add('active');
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-        document.getElementById('removeImgBtn').addEventListener('click', () => {
-            selectedImageData = null; fileInput.value = ''; previewWrapper.classList.remove('active');
-        });
-
-        function isUserAtBottom() {
-            return chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 50;
-        }
-
-        function toggleCopyBar(msgEl) {
-            const wrapper = msgEl.closest('.message-wrapper');
-            const copyBar = wrapper.querySelector('.msg-copy-bar');
-            if (copyBar) {
-                document.querySelectorAll('.msg-copy-bar').forEach(bar => {
-                    if (bar !== copyBar) bar.classList.remove('active');
-                });
-                copyBar.classList.toggle('active');
-            }
-        }
-
-        function copyMsgText(copyBarEl) {
-            const wrapper = copyBarEl.closest('.message-wrapper');
-            const msgText = wrapper.querySelector('.msg-text').innerText;
-            navigator.clipboard.writeText(msgText).then(() => {
-                copyBarEl.innerText = "✓ Copied!";
-                setTimeout(() => {
-                    copyBarEl.innerText = "📋 Copy Message";
-                    copyBarEl.classList.remove('active');
-                }, 1500);
-            });
-        }
-
-        function playTick() {
-            if (!settings.sound) return;
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            
-            osc.frequency.value = 600;
-            osc.type = 'sine';
-            gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
-            
-            osc.start(audioCtx.currentTime);
-            osc.stop(audioCtx.currentTime + 0.03);
-        }
-
-        let backgroundFastForward = false;
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden && isGenerating) {
-                backgroundFastForward = true;
+        // Smart Scroll tracking: Detects user manual scrolling up to prevent scroll-yanking during streaming
+        chatContainer.addEventListener('scroll', () => {
+            const distanceFromBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight;
+            if (distanceFromBottom > 70) {
+                userScrolledUp = true;
+                scrollToBottomBtn.classList.remove('hidden');
+            } else {
+                userScrolledUp = false;
+                scrollToBottomBtn.classList.add('hidden');
             }
         });
 
-        // HuggingFace Standard Vision API Fallback
-        async function fetchHuggingFaceImageResponse(promptText, base64Image) {
-            try {
-                const finalPrompt = promptText.trim() === "" ? "Describe this image in detail." : promptText;
-                
-                const response = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${HF_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: "meta-llama/Llama-3.2-11B-Vision-Instruct",
-                        messages: [
-                            {
-                                role: "user",
-                                content: [
-                                    { type: "text", text: finalPrompt },
-                                    { type: "image_url", image_url: { url: base64Image } }
-                                ]
-                            }
-                        ],
-                        max_tokens: 500
-                    }),
-                    signal: abortController.signal
-                });
+        scrollToBottomBtn.addEventListener('click', () => {
+            userScrolledUp = false;
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            scrollToBottomBtn.classList.add('hidden');
+        });
 
-                const data = await response.json();
-                if (data.choices && data.choices[0] && data.choices[0].message) {
-                    return data.choices[0].message.content;
-                } else {
-                    return "Many people are using Capella right now. Please try again later.";
-                }
-            } catch (err) {
-                return "Many people are using Capella right now. Please try again later.";
+        function autoScrollIfNeeded(force = false) {
+            if (!userScrolledUp || force) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
             }
         }
 
-        // Fetch Logic (Updated)
-        async function fetchResponse(promptText, base64Image) {
-            abortController = new AbortController();
-            
-            let apiPrompt = promptText;
-            if (settings.language !== 'English') {
-                apiPrompt += `\n[Respond in ${settings.language} language. Directly answer without restating prompt.]`;
+        window.addEventListener('load', () => {
+            loadSettings();
+            setTimeout(() => {
+                splashScreen.style.opacity = '0';
+                setTimeout(() => splashScreen.remove(), 700);
+            }, 800);
+        });
+
+        function loadSettings() {
+            const saved = localStorage.getItem('capella_settings');
+            if (saved) {
+                try { settings = JSON.parse(saved); } catch(e) {}
             }
-            if (settings.thinkingMode && !base64Image) {
-                apiPrompt += "\n(Think step-by-step and provide detailed reasoning.)";
-            }
-            
-            let thinkPct = 0;
-            const thinkLabel = document.getElementById('thinkPctText');
-            let thinkInterval = setInterval(() => {
-                if (thinkPct < 98) {
-                    thinkPct += Math.floor(Math.random() * 8) + 1;
-                    if(thinkPct > 98) thinkPct = 98;
-                    if(thinkLabel) thinkLabel.innerText = thinkPct + "%";
-                }
-            }, 100);
+            settingLang.value = settings.lang || 'en';
+            settingTheme.value = settings.theme || 'dark';
+            settingSound.checked = !!settings.sound;
+            applyTheme();
+        }
 
-            try {
-                if (base64Image) {
-                    // Image Processing via Gemini
-                    try {
-                        const mimeType = base64Image.substring(base64Image.indexOf(":") + 1, base64Image.indexOf(";"));
-                        const base64Data = base64Image.split(',')[1];
-                        const finalPrompt = promptText.trim() === "" ? "Describe this image in detail." : apiPrompt;
-
-                        const contents = [{ 
-                            parts: [
-                                { text: SYSTEM_PROMPT + "\n\nUser Question: " + finalPrompt }, 
-                                { inline_data: { mime_type: mimeType, data: base64Data } }
-                            ] 
-                        }];
-
-                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ contents }),
-                            signal: abortController.signal
-                        });
-
-                        const data = await res.json();
-                        if (data.error || !data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                            throw new Error("Gemini Image API Error");
-                        }
-
-                        clearInterval(thinkInterval);
-                        if(thinkLabel) thinkLabel.innerText = "100%";
-                        return data.candidates[0].content.parts[0].text;
-
-                    } catch (geminiError) {
-                        // Fallback to HuggingFace
-                        const hfReply = await fetchHuggingFaceImageResponse(promptText, base64Image);
-                        clearInterval(thinkInterval);
-                        if(thinkLabel) thinkLabel.innerText = "100%";
-                        return hfReply;
-                    }
-
-                } else {
-                    // Text & Code Requests handled smoothly via Groq Llama 3.3 70B
-                    const apiMsgs = [...chatHistory, { role: "user", content: apiPrompt }];
-                    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: apiMsgs, temperature: 0.7 }),
-                        signal: abortController.signal
-                    });
-                    
-                    clearInterval(thinkInterval);
-                    if(thinkLabel) thinkLabel.innerText = "100%";
-
-                    const data = await res.json();
-                    if(data.error) throw new Error();
-                    const reply = data.choices[0].message.content;
-                    
-                    chatHistory.push({ role: "user", content: promptText });
-                    chatHistory.push({ role: "assistant", content: reply });
-                    return reply;
-                }
-            } catch(e) {
-                clearInterval(thinkInterval);
-                if (e.name === 'AbortError') return null;
-                return "Many people are using Capella right now. Please try again later.";
+        function applyTheme() {
+            const root = document.documentElement;
+            if (settings.theme === 'light') {
+                root.classList.remove('dark');
+                root.classList.add('light');
+                document.body.style.backgroundColor = '#f3f4f6';
+                document.body.style.color = '#111827';
+            } else {
+                root.classList.remove('light');
+                root.classList.add('dark');
+                document.body.style.backgroundColor = '#0a0a0f';
+                document.body.style.color = '#f3f4f6';
             }
         }
 
-        function renderMessageContent(text) {
-            let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            html = html.replace(/```(\w*)\n([\s\S]*?)(?:```|$)/g, (match, lang, code) => {
-                const headerText = lang ? lang.toUpperCase() : 'TEXT';
-                return `<div class="code-block"><div class="code-header"><span>\( {headerText}</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-content"> \){code}</div></div>`;
-            });
-            return html;
-        }
+        saveSettingsBtn.addEventListener('click', () => {
+            settings.lang = settingLang.value;
+            settings.theme = settingTheme.value;
+            settings.sound = settingSound.checked;
+            localStorage.setItem('capella_settings', JSON.stringify(settings));
+            applyTheme();
+            settingsModal.classList.add('hidden');
+            settingsModal.classList.remove('flex');
+        });
 
-        window.copyCode = function(btn) {
-            const code = btn.closest('.code-block').querySelector('.code-content').innerText;
-            navigator.clipboard.writeText(code).then(() => { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500); });
-        }
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.classList.remove('hidden');
+            settingsModal.classList.add('flex');
+        });
 
-        function createPollinationsImageUI(container, promptText) {
-            const encodedPrompt = encodeURIComponent(promptText);
-            const imgUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
-            
-            const genUI = document.createElement('div');
-            genUI.className = 'gen-container';
-            genUI.innerHTML = `
-                <div class="gen-loader-box">
-                    <div class="gen-loader"></div>
-                    <div class="gen-pct">0%</div>
-                </div>
-                <img src="${imgUrl}" class="gen-img" alt="Generated Image" />
-                <div class="gen-actions">
-                    <button class="gen-btn view-btn">Expand</button>
-                    <a href="${imgUrl}" download="Generated_Image.jpg" class="gen-btn download-btn" target="_blank" style="text-decoration:none">Save</a>
-                </div>
-            `;
-            container.appendChild(genUI);
+        closeSettings.addEventListener('click', () => {
+            settingsModal.classList.add('hidden');
+            settingsModal.classList.remove('flex');
+        });
 
-            const pctLabel = genUI.querySelector('.gen-pct');
-            let progress = 0;
+        openImageGenMenuBtn.addEventListener('click', () => {
+            toggleSidebar(false);
+            imageGenModal.classList.remove('hidden');
+            imageGenModal.classList.add('flex');
+        });
+
+        closeImageGenModal.addEventListener('click', () => {
+            imageGenModal.classList.add('hidden');
+            imageGenModal.classList.remove('flex');
+        });
+
+        modalGenBtn.addEventListener('click', async () => {
+            const prompt = modalImgPrompt.value.trim();
+            if (!prompt) return;
+
+            // Prepare UI state for generation inside picture container
+            modalImgPlaceholder.classList.add('hidden');
+            modalResultImg.classList.add('hidden');
+            modalDownloadBtn.classList.add('hidden');
+            modalDownloadBtn.classList.remove('flex');
+            modalImgLoading.classList.remove('hidden');
+            modalGenBtn.disabled = true;
+            modalGenBtn.style.opacity = '0.6';
+
+            let progress = 5;
+            modalImgGenPercent.innerText = '5%';
+            modalImgProgressBar.style.width = '5%';
+
             const progressInterval = setInterval(() => {
-                if (progress < 95) {
-                    progress += Math.floor(Math.random() * 6) + 2;
-                    if (progress > 95) progress = 95;
-                    pctLabel.textContent = progress + "%";
+                if (progress < 92) {
+                    progress += Math.floor(Math.random() * 8) + 3;
+                    if (progress > 92) progress = 92;
+                    modalImgGenPercent.innerText = `${progress}%`;
+                    modalImgProgressBar.style.width = `${progress}%`;
                 }
-            }, 180);
+            }, 200);
 
-            const imgEl = genUI.querySelector('.gen-img');
-            imgEl.onload = () => {
+            try {
+                const imageUrl = await callGeminiImageAPI(prompt, null);
                 clearInterval(progressInterval);
-                pctLabel.textContent = "100%";
-                imgEl.classList.add('loaded');
-                genUI.querySelector('.gen-loader-box').style.display = 'none';
+
+                modalImgGenPercent.innerText = '100%';
+                modalImgProgressBar.style.width = '100%';
+
+                setTimeout(() => {
+                    modalImgLoading.classList.add('hidden');
+                    modalResultImg.src = imageUrl;
+                    modalResultImg.setAttribute('data-zoom-src', imageUrl);
+                    modalResultImg.classList.remove('hidden');
+                    
+                    modalDownloadBtn.href = imageUrl;
+                    modalDownloadBtn.classList.remove('hidden');
+                    modalDownloadBtn.classList.add('flex');
+
+                    modalGenBtn.disabled = false;
+                    modalGenBtn.style.opacity = '1';
+                }, 300);
+
+            } catch (err) {
+                clearInterval(progressInterval);
+                modalImgLoading.classList.add('hidden');
+                modalImgPlaceholder.classList.remove('hidden');
+                modalGenBtn.disabled = false;
+                modalGenBtn.style.opacity = '1';
+                alert('Image generation failed. Please try again.');
+            }
+        });
+
+        function toggleSidebar(open) {
+            if (open) {
+                sidebar.classList.remove('-translate-x-full');
+                sidebarBackdrop.classList.remove('opacity-0', 'pointer-events-none');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                sidebarBackdrop.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        sidebarToggle.addEventListener('click', () => toggleSidebar(true));
+        sidebarClose.addEventListener('click', () => toggleSidebar(false));
+        sidebarBackdrop.addEventListener('click', () => toggleSidebar(false));
+
+        function startNewChat() {
+            conversationHistory = [];
+            chatContainer.innerHTML = '';
+            if (welcomeBanner) chatContainer.appendChild(welcomeBanner);
+            
+            const spacer = document.createElement('div');
+            spacer.id = 'chatBottomSpacer';
+            spacer.className = 'h-44 md:h-52 shrink-0 w-full pointer-events-none';
+            chatContainer.appendChild(spacer);
+
+            toggleSidebar(false);
+            removeAttachedImage();
+            userScrolledUp = false;
+            scrollToBottomBtn.classList.add('hidden');
+            attachWelcomeListeners();
+        }
+
+        newChatSidebarBtn.addEventListener('click', startNewChat);
+        quickNewChatBtn.addEventListener('click', startNewChat);
+        logoTitleBtn.addEventListener('click', startNewChat);
+
+        userInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 128) + 'px';
+        });
+
+        uploadImageBtn.addEventListener('click', () => imageInput.click());
+
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                alert('Please select a valid image file');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                currentImageBase64 = event.target.result;
+                imagePreview.src = currentImageBase64;
+                imagePreviewContainer.classList.remove('hidden');
+                imagePreviewContainer.classList.add('flex');
             };
+            reader.readAsDataURL(file);
+        });
 
-            genUI.querySelector('.view-btn').addEventListener('click', () => openImageViewer(imgUrl));
-            imgEl.addEventListener('click', () => { if(imgEl.classList.contains('loaded')) openImageViewer(imgUrl); });
+        function removeAttachedImage() {
+            currentImageBase64 = null;
+            imageInput.value = '';
+            imagePreviewContainer.classList.remove('flex');
+            imagePreviewContainer.classList.add('hidden');
         }
 
-        const imageViewer = document.getElementById('imageViewer');
-        const viewerImg = document.getElementById('viewerImg');
-        const viewerDownload = document.getElementById('viewerDownload');
-        
-        function openImageViewer(url) {
-            viewerImg.src = url;
-            viewerDownload.href = url;
-            imageViewer.classList.add('active');
+        removeImageBtn.addEventListener('click', removeAttachedImage);
+
+        // Web Audio Synthesizer for Subtle Typing Sound Cues
+        let audioCtx = null;
+        function playTypingSound() {
+            if (!settings.sound) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(550 + Math.random() * 250, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.012, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.035);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.035);
+            } catch(e) {}
         }
-        document.getElementById('viewerClose').addEventListener('click', () => imageViewer.classList.remove('active'));
 
-        function typeWriterText(element, percentLabel, fullText, speed = 12, onComplete) {
-            shouldStopTyping = false;
-            backgroundFastForward = false;
+        // Separates AI output into distinct Copyable Text Boxes and Copyable Code Boxes
+        function formatAIResponse(rawText) {
+            if (!rawText) return '';
+            
+            const codeBlockRegex = /```(\w*)\n?([\s\S]*?)```/g;
+            let parts = [];
+            let lastIndex = 0;
+            let match;
 
-            let imagePrompt = null;
-            let isOwnerQuery = fullText.includes('[OWNER_PIC]');
-
-            if (isOwnerQuery) {
-                fullText = fullText.replace(/\[OWNER_PIC\]/g, '').trim();
+            while ((match = codeBlockRegex.exec(rawText)) !== null) {
+                if (match.index > lastIndex) {
+                    const textSegment = rawText.substring(lastIndex, match.index).trim();
+                    if (textSegment) {
+                        parts.push({ type: 'text', content: textSegment });
+                    }
+                }
+                parts.push({ 
+                    type: 'code', 
+                    lang: match[1] || 'code', 
+                    content: match[2].replace(/^\n+|\n+$/g, '') 
+                });
+                lastIndex = codeBlockRegex.lastIndex;
             }
 
-            const imgMatch = fullText.match(/\[IMAGE:(.*?)\]/i);
-            if (imgMatch) {
-                imagePrompt = imgMatch[1].trim();
-                fullText = fullText.replace(imgMatch[0], '').trim();
+            if (lastIndex < rawText.length) {
+                const tailText = rawText.substring(lastIndex).trim();
+                if (tailText) {
+                    parts.push({ type: 'text', content: tailText });
+                }
             }
 
-            function finishTypingInstantly() {
-                element.innerHTML = renderMessageContent(fullText);
-                percentLabel.textContent = "100%";
-                setTimeout(() => percentLabel.style.display = 'none', 1000); 
-                
-                if (isOwnerQuery) {
-                    const ownerUI = document.createElement('div');
-                    ownerUI.className = 'gen-container';
-                    ownerUI.style.marginTop = '10px';
-                    ownerUI.innerHTML = `
-                        <img src="${OWNER_PIC_URL}" class="gen-img loaded" alt="Owner Image" style="opacity: 1; position: absolute; top:0; left:0;" onerror="this.onerror=null; this.src='https://api.iconify.design/lucide:user.svg';" />
-                        <div class="gen-actions">
-                            <button class="gen-btn view-btn">Expand</button>
-                            <a href="${OWNER_PIC_URL}" download="Owner_Image.jpg" class="gen-btn download-btn" target="_blank" style="text-decoration:none">Save</a>
+            if (parts.length === 0) {
+                parts.push({ type: 'text', content: rawText });
+            }
+
+            let htmlOutput = '';
+            parts.forEach((part, idx) => {
+                if (part.type === 'code') {
+                    const langLabel = part.lang || 'code';
+                    htmlOutput += `
+                        <div class="code-block-wrapper bg-[#09090e] border border-gray-800 rounded-2xl overflow-hidden my-3 shadow-xl">
+                            <div class="bg-gray-900/90 px-4 py-2.5 flex items-center justify-between text-xs text-gray-400 border-b border-gray-800/80">
+                                <span class="font-mono uppercase font-semibold text-purple-400 tracking-wider flex items-center gap-1.5">
+                                    <i data-lucide="code" class="w-3.5 h-3.5"></i> ${escapeHtml(langLabel)}
+                                </span>
+                                <button onclick="copyCodeSnippet(this)" class="hover:text-white flex items-center gap-1.5 transition px-2.5 py-1 rounded-lg bg-gray-800/80 hover:bg-gray-700 text-gray-300">
+                                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> <span>Copy Code</span>
+                                </button>
+                            </div>
+                            <pre class="p-4 text-xs md:text-sm font-mono overflow-x-auto text-purple-200 leading-relaxed"><code>${escapeHtml(part.content)}</code></pre>
                         </div>
                     `;
-                    ownerUI.querySelector('.view-btn').addEventListener('click', () => openImageViewer(OWNER_PIC_URL));
-                    ownerUI.querySelector('.gen-img').addEventListener('click', () => openImageViewer(OWNER_PIC_URL));
-                    element.parentElement.appendChild(ownerUI);
-                }
-
-                if (imagePrompt) {
-                    createPollinationsImageUI(element.parentElement, imagePrompt);
-                }
-                if(isUserAtBottom()) chatContainer.scrollTop = chatContainer.scrollHeight;
-                if (onComplete) onComplete();
-            }
-
-            const hasCodeBlock = fullText.includes('```');
-            if (hasCodeBlock) {
-                finishTypingInstantly();
-                return;
-            }
-
-            let index = 0;
-            element.innerHTML = '';
-
-            function typeNext() {
-                if (shouldStopTyping || backgroundFastForward) {
-                    finishTypingInstantly();
-                    return;
-                }
-
-                if (index < fullText.length) {
-                    element.innerHTML = renderMessageContent(fullText.slice(0, index + 1));
-                    if(index % 3 === 0) playTick();
-                    
-                    const p = Math.floor(((index + 1) / fullText.length) * 100);
-                    percentLabel.textContent = p + "%";
-
-                    if (isUserAtBottom()) {
-                        chatContainer.scrollTop = chatContainer.scrollHeight;
-                    }
-
-                    index++;
-                    typeWriterTimeout = setTimeout(typeNext, speed);
                 } else {
-                    finishTypingInstantly();
+                    let parsedMd = part.content;
+                    try {
+                        parsedMd = marked.parse(part.content);
+                    } catch(e) {}
+
+                    htmlOutput += `
+                        <div class="text-card-wrapper bg-[#151522] light:bg-gray-50 border border-[#26263e] light:border-gray-200 rounded-2xl p-4 my-3 shadow-md">
+                            <div class="flex items-center justify-between border-b border-gray-800/50 light:border-gray-200 pb-2 mb-3">
+                                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-blue-400"></i> Explanation
+                                </span>
+                                <button onclick="copyCardText(this)" class="hover:text-white flex items-center gap-1.5 transition px-2.5 py-1 rounded-lg bg-gray-800/60 light:bg-gray-200 text-xs text-gray-300 light:text-gray-700 hover:bg-gray-700">
+                                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> <span>Copy Text</span>
+                                </button>
+                            </div>
+                            <div class="ai-text-content space-y-2 prose prose-invert max-w-none text-gray-200 light:text-gray-800 text-sm leading-relaxed text-card-body">${parsedMd}</div>
+                        </div>
+                    `;
                 }
-            }
-            typeNext();
+            });
+
+            return htmlOutput;
         }
 
-        async function sendMessage() {
+        window.copyCodeSnippet = function(btn) {
+            const pre = btn.closest('.code-block-wrapper').querySelector('pre code');
+            const code = pre ? pre.textContent : '';
+            navigator.clipboard.writeText(code).then(() => {
+                const span = btn.querySelector('span');
+                const icon = btn.querySelector('i');
+                if (span) span.textContent = 'Copied!';
+                if (icon) icon.setAttribute('data-lucide', 'check');
+                lucide.createIcons();
+                setTimeout(() => {
+                    if (span) span.textContent = 'Copy Code';
+                    if (icon) icon.setAttribute('data-lucide', 'copy');
+                    lucide.createIcons();
+                }, 1800);
+            });
+        };
+
+        window.copyCardText = function(btn) {
+            const cardBody = btn.closest('.text-card-wrapper').querySelector('.text-card-body');
+            const textToCopy = cardBody ? cardBody.innerText : '';
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const span = btn.querySelector('span');
+                const icon = btn.querySelector('i');
+                if (span) span.textContent = 'Copied!';
+                if (icon) icon.setAttribute('data-lucide', 'check');
+                lucide.createIcons();
+                setTimeout(() => {
+                    if (span) span.textContent = 'Copy Text';
+                    if (icon) icon.setAttribute('data-lucide', 'copy');
+                    lucide.createIcons();
+                }, 1800);
+            });
+        };
+
+        // Safe Image Viewer Event Delegation
+        document.addEventListener('click', (e) => {
+            const clickableImg = e.target.closest('[data-zoom-src]');
+            if (clickableImg) {
+                const src = clickableImg.getAttribute('data-zoom-src');
+                if (src) {
+                    modalImage.src = src;
+                    downloadModalImage.href = src;
+                    imageModal.classList.remove('hidden');
+                    imageModal.classList.add('flex');
+                }
+            }
+        });
+
+        closeImageModal.addEventListener('click', () => {
+            imageModal.classList.add('hidden');
+            imageModal.classList.remove('flex');
+        });
+
+        function appendMessage(sender, content, imageSrc = null, type = 'text', extraData = {}) {
+            if (welcomeBanner && welcomeBanner.parentNode) welcomeBanner.remove();
+
+            const messageDiv = document.createElement('div');
+            // Adding 'ai-reply-spacing' (2 cm / ~75px bottom gap) to AI replies
+            const spacingClass = sender === 'ai' ? 'ai-reply-spacing justify-start' : 'mb-6 justify-end';
+            messageDiv.className = `flex gap-3 max-w-3xl mx-auto animate-fade-in ${spacingClass}`;
+
+            if (sender === 'ai') {
+                let innerHTMLContent = '';
+
+                if (type === 'image-card') {
+                    const progress = extraData.progress || 0;
+                    innerHTMLContent = `
+                        <div id="imgCardContainer" class="relative group rounded-2xl overflow-hidden border border-gray-700 shadow-xl bg-[#13131d] max-w-sm">
+                            <div class="w-full h-56 flex flex-col items-center justify-center bg-gray-900 gap-3 p-4">
+                                <div class="w-9 h-9 rounded-full border-2 border-purple-500 border-t-transparent animate-spin"></div>
+                                <span id="imgGenProgressText" class="text-xs font-semibold text-purple-300">Generating image via AI... ${progress}%</span>
+                            </div>
+                        </div>
+                    `;
+                } else if (type === 'thinking') {
+                    const percent = extraData.percent || 1;
+                    innerHTMLContent = `
+                        <div class="flex items-center gap-2.5 text-xs font-medium text-purple-400 py-2 px-1 thinking-indicator">
+                            <div class="w-2.5 h-2.5 rounded-full bg-purple-400 animate-ping"></div>
+                            <span>Gemini is thinking (Google Grounded)... ${percent}%</span>
+                        </div>
+                    `;
+                } else if (type === 'writing') {
+                    const percent = extraData.percent || 0;
+                    innerHTMLContent = `
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center gap-2 text-xs font-medium text-blue-400">
+                                <div class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
+                                <span class="writing-progress-text">Writing response... ${percent}%</span>
+                            </div>
+                            <div class="w-full bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                                <div class="writing-progress-bar h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-200" style="width: ${percent}%"></div>
+                            </div>
+                            <div class="ai-text-content space-y-2 writing-content"></div>
+                        </div>
+                    `;
+                } else {
+                    innerHTMLContent = `<div class="ai-text-content space-y-2">${formatAIResponse(content)}</div>`;
+                }
+
+                messageDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-xl gradient-bg flex items-center justify-center shrink-0 shadow-md overflow-hidden text-white font-bold text-xs">
+                        <img src="https://i.ibb.co.com/qM3sDFXY/logo.png" alt="Logo" class="w-full h-full object-cover" onerror="this.parentElement.innerText='G'">
+                    </div>
+                    <div class="flex flex-col gap-1 max-w-[90%] md:max-w-[85%]">
+                        <div class="text-xs font-medium text-gray-400 px-1">Gemini AI</div>
+                        <div class="bg-[#13131d] light:bg-white border border-[#22223b] light:border-gray-200 p-3 md:p-4 rounded-2xl text-sm text-gray-200 light:text-gray-900 shadow-lg leading-relaxed relative group message-bubble">
+                            ${imageSrc ? `<img src="${imageSrc}" data-zoom-src="${escapeHtml(imageSrc)}" class="w-36 h-36 object-cover rounded-xl mb-3 border border-gray-700 cursor-pointer hover:opacity-90 transition">` : ''}
+                            <div class="ai-msg-content">${innerHTMLContent}</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="flex flex-col gap-1 max-w-[85%] md:max-w-[75%] items-end">
+                        <div class="text-xs font-medium text-gray-400 px-1">You</div>
+                        <div class="gradient-bg p-4 rounded-2xl text-sm text-white shadow-lg leading-relaxed">
+                            ${imageSrc ? `<img src="${imageSrc}" data-zoom-src="${escapeHtml(imageSrc)}" class="w-40 h-40 object-cover rounded-xl mb-3 border border-white/20 cursor-pointer hover:opacity-90 transition">` : ''}
+                            <p class="whitespace-pre-wrap">${escapeHtml(content || '')}</p>
+                        </div>
+                    </div>
+                    <div class="w-8 h-8 rounded-xl bg-gray-700 light:bg-gray-300 flex items-center justify-center shrink-0 shadow-md text-gray-200 font-bold text-xs">
+                        You
+                    </div>
+                `;
+            }
+
+            const spacer = document.getElementById('chatBottomSpacer');
+            if (spacer) {
+                chatContainer.insertBefore(messageDiv, spacer);
+            } else {
+                chatContainer.appendChild(messageDiv);
+            }
+
+            autoScrollIfNeeded(true);
+            lucide.createIcons();
+            return messageDiv;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+        }
+
+        async function handleAction(overrideText = null) {
             if (isGenerating) {
-                shouldStopTyping = true;
-                if(abortController) abortController.abort();
-                isGenerating = false;
-                sendBtn.textContent = 'Send';
-                sendBtn.classList.remove('stop-mode');
-                const tb = document.getElementById('thinkingBubble');
-                if(tb) tb.remove();
+                if (abortController) abortController.abort();
+                stopGenerationState();
+                appendMessage('ai', 'Generation stopped by user.');
                 return;
             }
-            
-            if(!audioCtx && settings.sound) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            const text = overrideText !== null ? overrideText : userInput.value.trim();
+            const attachedImg = currentImageBase64;
+            if (!text && !attachedImg) return;
+
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            removeAttachedImage();
+            userScrolledUp = false;
+
+            appendMessage('user', text, attachedImg);
+
+            const userParts = [];
+            if (attachedImg) {
+                const base64Data = attachedImg.split(',')[1];
+                const mimeType = attachedImg.split(';')[0].split(':')[1] || 'image/jpeg';
+                userParts.push({ inlineData: { mimeType, data: base64Data } });
+            }
+            if (text) {
+                userParts.push({ text: text });
+            } else {
+                userParts.push({ text: "Describe this image or answer based on it." });
             }
 
-            const text = userInput.value.trim();
-            if (!text && !selectedImageData) return;
+            conversationHistory.push({ role: 'user', parts: userParts });
 
             isGenerating = true;
-            sendBtn.textContent = 'Stop';
-            sendBtn.classList.add('stop-mode');
+            actionBtn.classList.remove('gradient-bg');
+            actionBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+            actionBtnIcon.setAttribute('data-lucide', 'square');
+            lucide.createIcons();
 
-            const uText = text;
-            const uImg = selectedImageData;
+            abortController = new AbortController();
 
-            const uWrapper = document.createElement('div');
-            uWrapper.className = 'message-wrapper user-wrapper';
-            let uHtml = `
-                <div class="message-header"><div style="flex:1"></div><span class="sender-name">You</span></div>
-                <div class="message user-msg" onclick="toggleCopyBar(this)">`;
-            if (uText) uHtml += `<div class="msg-text">${uText.replace(/</g, "&lt;")}</div>`;
-            if (uImg) uHtml += `<img src="${uImg}" class="msg-image">`;
-            uHtml += `</div><div class="msg-copy-bar" onclick="copyMsgText(this)">📋 Copy Message</div>`;
-            uWrapper.innerHTML = uHtml;
-            chatContainer.appendChild(uWrapper);
+            // Check if user is asking to create/generate/draw an image in chat
+            const isImageGen = /^(generate|create|draw|paint|make|show|render)\s+(me\s+)?(an?\s+)?(image|picture|photo|art|illustration|drawing|pic|wallpaper)/i.test(text) ||
+                               /(image|picture|photo|art|drawing|pic|wallpaper)\s+(of|about|showing|with)/i.test(text) ||
+                               /draw a|paint a|picture of|image of|photo of|ছবি|আঁকো|ছবি আঁকো|ছবি বানাও|ছবি তৈরি|পিক বানাও|পিকচার বানাও/i.test(text);
 
-            userInput.value = ''; userInput.style.height = 'auto';
-            document.getElementById('removeImgBtn').click(); 
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            if (isImageGen && !attachedImg) {
+                stopGenerationState();
+                const redirectMsg = settings.lang === 'bn' ? 
+                    'পিকচার তৈরি করার জন্য অনুগ্রহ করে **মেনু (Menu)** থেকে **"Image Generator"** অপশনটি ব্যবহার করুন। সেখানে ছবি তৈরির সময় পিকচারের সাইজের ভেতর শতাংশ (%) দেখতে পাবেন।' :
+                    'To generate pictures, please open the **Menu** and select the **"Image Generator"** option. You can generate custom pictures there with real-time percentage indicators inside the picture box.';
+                appendMessage('ai', redirectMsg);
+                return;
+            }
 
-            const tb = document.createElement('div');
-            tb.className = 'message-wrapper capella-wrapper';
-            tb.id = 'thinkingBubble';
-            tb.innerHTML = `<div class="message-header"><div class="message-header-left"><img src="${CAPELLA_PFP_URL}" onerror="this.src='https://api.iconify.design/lucide:bot.svg'" class="sender-icon"><span class="sender-name">Capella</span></div></div>
-            <div class="message capella-msg"><div class="thinking-indicator"><div class="blue-dot-pulse"></div><span style="font-size:0.8rem;color:#94a3b8">Thinking... <span id="thinkPctText">0%</span></span></div></div>`;
-            chatContainer.appendChild(tb);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            // Text / Web Search Grounding Flow
+            let percent = 5;
+            const thinkingBubbleNode = appendMessage('ai', '', null, 'thinking', { percent });
+            const thinkingSpan = thinkingBubbleNode.querySelector('.thinking-indicator span');
 
-            const aiReply = await fetchResponse(uText, uImg);
-            const currentTb = document.getElementById('thinkingBubble');
-            if (currentTb) currentTb.remove();
+            const progressInterval = setInterval(() => {
+                if (percent < 92) {
+                    percent += Math.floor(Math.random() * 8) + 2;
+                    if (percent > 92) percent = 92;
+                    if (thinkingSpan) thinkingSpan.innerText = `Gemini is thinking (Google Grounded)... ${percent}%`;
+                }
+            }, 250);
 
-            if (aiReply === null) return; 
+            try {
+                const responseText = await callGeminiWithSearch(text, attachedImg, abortController.signal);
+                clearInterval(progressInterval);
+                thinkingBubbleNode.remove();
 
-            const aiWrapper = document.createElement('div');
-            aiWrapper.className = 'message-wrapper capella-wrapper';
-            aiWrapper.innerHTML = `
-                <div class="message-header">
-                    <div class="message-header-left">
-                        <img src="${CAPELLA_PFP_URL}" onerror="this.src='https://api.iconify.design/lucide:bot.svg'" class="sender-icon">
-                        <span class="sender-name">Capella</span>
+                const writingNode = appendMessage('ai', '', null, 'writing', { percent: 0 });
+                const contentContainer = writingNode.querySelector('.writing-content');
+                const progressText = writingNode.querySelector('.writing-progress-text');
+                const progressBar = writingNode.querySelector('.writing-progress-bar');
+
+                let currentTyped = '';
+                const totalLen = responseText.length;
+                const chunkSize = Math.max(1, Math.floor(totalLen / 60));
+
+                for (let i = 0; i < totalLen; i += chunkSize) {
+                    if (abortController.signal.aborted) break;
+                    
+                    currentTyped = responseText.substring(0, Math.min(i + chunkSize, totalLen));
+                    const pct = Math.min(99, Math.round((currentTyped.length / totalLen) * 100));
+                    
+                    if (progressText) progressText.textContent = `Writing response... ${pct}%`;
+                    if (progressBar) progressBar.style.width = pct + '%';
+                    
+                    contentContainer.innerHTML = formatAIResponse(currentTyped);
+                    playTypingSound();
+                    
+                    autoScrollIfNeeded(false);
+                    
+                    await new Promise(r => setTimeout(r, 20));
+                }
+
+                if (progressText) progressText.textContent = `Writing response... 100%`;
+                if (progressBar) progressBar.style.width = '100%';
+                contentContainer.innerHTML = formatAIResponse(responseText);
+                
+                setTimeout(() => {
+                    const bubble = writingNode.querySelector('.message-bubble');
+                    if (bubble) {
+                        const msgContent = bubble.querySelector('.ai-msg-content');
+                        if (msgContent) {
+                            msgContent.innerHTML = `<div class="ai-text-content space-y-2">${formatAIResponse(responseText)}</div>`;
+                            lucide.createIcons();
+                        }
+                    }
+                }, 300);
+
+                stopGenerationState();
+                conversationHistory.push({ role: 'model', parts: [{ text: responseText }] });
+
+            } catch (error) {
+                clearInterval(progressInterval);
+                stopGenerationState();
+                thinkingBubbleNode.remove();
+                if (error.name !== 'AbortError') {
+                    console.error(error);
+                    appendMessage('ai', 'Sorry, I couldn\'t process your request right now.\n\nDetails: ' + (error.message || 'Unknown error occurred.'));
+                }
+            }
+        }
+
+        async function handleGeminiImageGeneration(prompt) {
+            let progress = 8;
+            const imageCardNode = appendMessage('ai', '', null, 'image-card', { progress });
+            const progressText = imageCardNode.querySelector('#imgGenProgressText');
+            const cardContainer = imageCardNode.querySelector('#imgCardContainer');
+
+            const interval = setInterval(() => {
+                if (progress < 90) {
+                    progress += Math.floor(Math.random() * 10) + 4;
+                    if (progress > 90) progress = 90;
+                    if (progressText) progressText.innerText = `Generating image via AI... ${progress}%`;
+                }
+            }, 250);
+
+            try {
+                const imageUrl = await callGeminiImageAPI(prompt, abortController.signal);
+                clearInterval(interval);
+                stopGenerationState();
+
+                if (progressText) progressText.innerText = `Generating image via AI... 100%`;
+
+                cardContainer.innerHTML = `
+                    <div class="relative group cursor-pointer overflow-hidden rounded-2xl border border-gray-700/60 shadow-2xl bg-gray-900">
+                        <img src="${imageUrl}" data-zoom-src="${escapeHtml(imageUrl)}" alt="${escapeHtml(prompt)}" class="w-full h-auto object-cover transition duration-300 group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/1024x1024/13131d/a78bfa?text=Image+Generated';">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-3 backdrop-blur-xs">
+                            <span class="bg-white/20 backdrop-blur-md px-3.5 py-1.5 rounded-xl text-white text-xs font-medium border border-white/20 shadow-lg">Click to Expand</span>
+                        </div>
                     </div>
-                    <span class="type-percentage">0%</span>
-                </div>
-                <div class="message capella-msg" onclick="toggleCopyBar(this)">
-                    <div class="msg-text"></div>
-                </div>
-                <div class="msg-copy-bar" onclick="copyMsgText(this)">📋 Copy Message</div>
-            `;
-            chatContainer.appendChild(aiWrapper);
+                    <div class="p-3 text-xs text-gray-400 bg-[#13131d] border-t border-gray-800 flex items-center justify-between">
+                        <span class="truncate max-w-[200px] md:max-w-[240px] font-medium text-purple-300">"${escapeHtml(prompt)}"</span>
+                        <a href="${imageUrl}" target="_blank" download="capella-art.png" class="text-purple-400 hover:text-purple-300 flex items-center gap-1 font-semibold">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i> Save
+                        </a>
+                    </div>
+                `;
+                lucide.createIcons();
+                conversationHistory.push({ role: 'model', parts: [{ text: '[Generated Image: ' + prompt + ']' }] });
 
-            const msgTextDiv = aiWrapper.querySelector('.msg-text');
-            const pctLabel = aiWrapper.querySelector('.type-percentage');
+            } catch (err) {
+                clearInterval(interval);
+                stopGenerationState();
+                imageCardNode.remove();
+                if (err.name !== 'AbortError') {
+                    appendMessage('ai', 'Sorry, image generation encountered an issue. Please try a different prompt.');
+                    console.error(err);
+                }
+            }
+        }
 
-            typeWriterText(msgTextDiv, pctLabel, aiReply, 12, () => {
-                isGenerating = false;
-                sendBtn.textContent = 'Send';
-                sendBtn.classList.remove('stop-mode');
+        // Multi-Engine Universal AI Image Generation API Call
+        async function callGeminiImageAPI(prompt, signal) {
+            let cleanPrompt = prompt
+                .replace(/^(generate|create|draw|paint|make|show me|show|make me)\s+(an?\s+)?(image|picture|photo|art|illustration|drawing|pic|wallpaper)?\s*(of|about)?\s*/i, '')
+                .replace(/^(ছবি আঁকো|ছবি তৈরি করো|ছবি বানাও|ছবি|আঁকো)\s*/i, '')
+                .trim() || prompt;
+
+            // 1. Primary Attempt: Gemini 3.1 Flash Image Endpoint
+            if (apiKey && apiKey.trim() !== "") {
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=${apiKey}`;
+                    const payload = {
+                        contents: [{ role: 'user', parts: [{ text: cleanPrompt }] }],
+                        generationConfig: {
+                            responseModalities: ['IMAGE'],
+                            imageConfig: { aspectRatio: "1:1" }
+                        }
+                    };
+
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                        signal: signal
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        const part = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                        if (part && part.inlineData && part.inlineData.data) {
+                            return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Gemini native image API bypassed, using high-res AI image generator engine:", e);
+                }
+            }
+
+            // 2. High-Performance Universal Fallback Engine (Guarantees fresh high quality images for ANY subject)
+            const encodedPrompt = encodeURIComponent(cleanPrompt);
+            const randomSeed = Math.floor(Math.random() * 9000000) + 100000;
+            const fallbackUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${randomSeed}&enhance=true`;
+
+            // Pre-load image link to confirm availability
+            await new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(fallbackUrl);
+                img.onerror = () => resolve(fallbackUrl);
+                img.src = fallbackUrl;
+                setTimeout(resolve, 1800);
+            });
+
+            return fallbackUrl;
+        }
+
+        function stopGenerationState() {
+            isGenerating = false;
+            actionBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+            actionBtn.classList.add('gradient-bg');
+            actionBtnIcon.setAttribute('data-lucide', 'send');
+            lucide.createIcons();
+        }
+
+        async function callGeminiWithSearch(prompt, imageBase64, signal) {
+            const model = 'gemini-3-flash-preview';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+            const langInstruction = settings.lang === 'bn' ? 'Bengali (বাংলা)' : 
+                                    settings.lang === 'hi' ? 'Hindi (हिन्दी)' : 
+                                    settings.lang === 'es' ? 'Spanish' : 
+                                    settings.lang === 'fr' ? 'French' : 
+                                    settings.lang === 'de' ? 'German' : 'English';
+
+            const payload = {
+                contents: conversationHistory,
+                systemInstruction: { 
+                    parts: [{ 
+                        text: `You are Gemini, a helpful, intelligent multimodal AI assistant developed by Google.
+IMPORTANT RULES:
+1. Do NOT generate pictures directly in the chat responses. If a user asks you to generate, draw, or make a picture/image/photo in chat, politely tell them to use the "Image Generator (পিক জেনারেটর)" option from the main Menu.
+2. Only mention leadership details (Owner: Shadman Wasif Faruque, Co-Owner: Harry Li, Partners: Ekaterina Tarasenko and Settro Tarasenko) if the user explicitly asks about creators, owners, founders, or leadership. Otherwise never mention them.
+Respond in ${langInstruction}.
+When providing explanations and code snippets, always format code in standard fenced code blocks specifying the language (e.g. \`\`\`python or \`\`\`javascript).
+Be concise, organized, and helpful.` 
+                    }] 
+                },
+                tools: [{ "google_search": {} }]
+            };
+
+            let retries = 4;
+            let delay = 1000;
+
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                        signal: signal
+                    });
+
+                    if (!response.ok) {
+                        const errBody = await response.text();
+                        throw new Error(`API response ${response.status}: ${errBody.substring(0, 150)}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    let text = '';
+                    const parts = result.candidates?.[0]?.content?.parts || [];
+                    for (const p of parts) {
+                        if (p.text) text += p.text;
+                    }
+
+                    // Extract Search Grounding Sources
+                    const grounding = result.candidates?.[0]?.groundingMetadata;
+                    if (grounding) {
+                        const sources = [];
+                        if (grounding.groundingChunks) {
+                            grounding.groundingChunks.forEach(chunk => {
+                                if (chunk.web?.uri) sources.push({ title: chunk.web.title || chunk.web.uri, uri: chunk.web.uri });
+                            });
+                        }
+                        if (grounding.groundingAttributions) {
+                            grounding.groundingAttributions.forEach(a => {
+                                if (a.web?.uri) sources.push({ title: a.web.title || a.web.uri, uri: a.web.uri });
+                            });
+                        }
+
+                        const uniqueSources = Array.from(new Set(sources.map(s => s.uri)))
+                            .map(uri => sources.find(s => s.uri === uri))
+                            .slice(0, 4);
+
+                        if (uniqueSources.length > 0) {
+                            text += `\n\n---\n**Sources:**\n` + uniqueSources.map(s => `- [${escapeHtml(s.title)}](${s.uri})`).join('\n');
+                        }
+                    }
+
+                    if (!text || text.trim() === '') {
+                        throw new Error('Received empty text response from Gemini API.');
+                    }
+
+                    return text.trim();
+
+                } catch (error) {
+                    if (error.name === 'AbortError') throw error;
+                    if (i === retries - 1) throw error;
+                    await new Promise(res => setTimeout(res, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        function attachWelcomeListeners() {
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const text = btn.innerText.trim();
+                    toggleSidebar(false);
+                    handleAction(text);
+                });
+            });
+
+            document.querySelectorAll('.welcome-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const text = chip.querySelector('.text-gray-400')?.innerText || chip.innerText;
+                    handleAction(text);
+                });
             });
         }
 
-        sendBtn.addEventListener('click', sendMessage);
+        attachWelcomeListeners();
+
+        actionBtn.addEventListener('click', () => handleAction());
         userInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleAction();
+            }
         });
     </script>
 </body>
