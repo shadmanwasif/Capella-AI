@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const path = require('path'); // পাথ (path) মডিউলটি যুক্ত করতে হবে
+const path = require('path');
 const cors = require('cors');
 const { Groq } = require('groq-sdk');
 const { tavily } = require('@tavily/core');
@@ -10,8 +10,6 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-
-// ফ্রন্টএন্ড ফাইলগুলো (index.html, style.css, script.js) দেখানোর জন্য এটি জরুরি
 app.use(express.static(path.join(__dirname)));
 
 const groq = new Groq({
@@ -70,7 +68,8 @@ app.post('/api/chat', async (req, res) => {
             
             updatedMessages.unshift({
                 role: "system",
-                content: `You are Capella AI, developed by Shadman Wasif Faruque. 
+                content: `You are Capella AI, developed by Shadman Wasif Faruque. Whenever anyone asks about Shadman Wasif Faruque, his personal information, bio, or details about your owner/creator, always include his official portfolio website link using the exact anchor text [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/).
+
 CRITICAL INSTRUCTION: Real-time search data is provided below. You MUST rely EXCLUSIVELY on this search data to answer factual questions. 
 
 ${searchData}`
@@ -78,7 +77,7 @@ ${searchData}`
         } else {
             updatedMessages.unshift({
                 role: "system",
-                content: `You are Capella AI, a friendly and intelligent assistant developed by Shadman Wasif Faruque.`
+                content: `You are Capella AI, a friendly and intelligent assistant created, owned, and developed by Shadman Wasif Faruque. Whenever anyone asks about Shadman Wasif Faruque, his personal information, bio, or details about your owner/creator, always include his official portfolio website link using the exact anchor text [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/).`
             });
         }
 
@@ -102,5 +101,5 @@ ${searchData}`
 
 app.listen(port, () => {
     console.log(`🚀 Capella AI Backend is running on port ${port}`);
-    console.log(`🌐 Smart Web Search Enabled`);
+    console.log(`🌐 Model: openai/gpt-oss-20b Enabled`);
 });

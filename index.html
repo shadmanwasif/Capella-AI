@@ -78,7 +78,6 @@
         .message-header-left { display: flex; align-items: center; gap: 6px; }
         .sender-icon { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
         .sender-name { font-size: 0.78rem; color: #94a3b8; font-weight: 500; }
-        .type-percentage { font-size: 0.7rem; color: #818cf8; font-weight: 600; background: rgba(99,102,241,0.1); padding: 2px 6px; border-radius: 10px; }
 
         .message-box-outer { position: relative; display: inline-block; }
         .message { padding: 12px 16px; border-radius: 16px; line-height: 1.5; font-size: 0.92rem; word-wrap: break-word; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); cursor: pointer; position: relative; }
@@ -203,7 +202,7 @@
             <div class="message-box-outer">
                 <div class="copy-tooltip">Copied!</div>
                 <div class="message capella-msg" onclick="copyMessageText(this)">
-                    <div class="msg-text">Hi, How can I help you today?</div>
+                    <div class="msg-text">Hi, How can I help you today? 😊</div>
                 </div>
             </div>
         </div>
@@ -237,11 +236,7 @@
             const threshold = 60;
             const currentScroll = chatContainer.scrollTop + chatContainer.clientHeight;
             const maxScroll = chatContainer.scrollHeight;
-            if (maxScroll - currentScroll > threshold) {
-                userScrolledUp = true;
-            } else {
-                userScrolledUp = false;
-            }
+            userScrolledUp = (maxScroll - currentScroll > threshold);
         });
 
         const settingsBtn = document.getElementById('settingsBtn');
@@ -268,7 +263,7 @@
                     <div class="message-box-outer">
                         <div class="copy-tooltip">Copied!</div>
                         <div class="message capella-msg" onclick="copyMessageText(this)">
-                            <div class="msg-text">Hi, How can I help you today?</div>
+                            <div class="msg-text">Hi, How can I help you today? 😊</div>
                         </div>
                     </div>
                 </div>`;
@@ -329,7 +324,6 @@
 
         async function fetchResponse(promptText) {
             abortController = new AbortController();
-            const selectedLang = langSelect.value;
             
             if (isImageGenerationRequest(promptText)) {
                 const cleanPrompt = promptText.replace(/(generate image|create image|picture of|ছবি বানাও|ছবি তৈরি|একটি ছবি)/gi, '').trim();
@@ -344,12 +338,11 @@
 
             try {
                 const messagesForServer = [
-                    { role: 'system', content: SYSTEM_PROMPT + `\nInstruction: Reply fluently in ${selectedLang}. Whenever you mention the creator/owner Shadman Wasif Faruque's website or portfolio, use the markdown link format: [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/).` },
                     ...chatHistory,
                     { role: 'user', content: promptText }
                 ];
 
-                const res = await fetch('http://localhost:3000/api/chat', {
+                const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -365,7 +358,7 @@
                 return { type: 'text', text: data.reply || "No response content received." };
             } catch(e) {
                 if (e.name === 'AbortError') return null;
-                return { type: 'text', text: "⚠️ Connection Error: Please make sure your 'node server.js' backend is running." };
+                return { type: 'text', text: "⚠️ Connection Error: Please ensure your backend server is running." };
             }
         }
 
@@ -382,164 +375,163 @@
             });
 
             // Markdown Links: [Title](URL)
-            html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color: #818cf8; text-decoration: underline;">$1</a>');
+            html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color:#818cf8;text-decoration:underline;">$1</a>');
 
+            // Bold & Italics
             html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            
-            // Plain links fallback
-            html = html.replace(/(https?:\/\/[^\s<]+)(?![^<]*>|[^<>]*<\/a>)/g, '<a href="$1" target="_blank" style="color: #818cf8; text-decoration: underline;">$1</a>');
-            
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+            // Line breaks
             html = html.replace(/\n/g, '<br>');
 
             return html;
         }
 
-        window.copyCode = function(btn) {
-            const code = btn.closest('.code-block').querySelector('.code-content').innerText;
-            navigator.clipboard.writeText(code).then(() => { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500); });
-        }
-
-        window.copyMessageText = function(el) {
-            const textDiv = el.querySelector('.msg-text');
-            const textToCopy = textDiv ? textDiv.innerText : el.innerText;
-            
+        function copyMessageText(element) {
+            const textToCopy = element.innerText || element.textContent;
             navigator.clipboard.writeText(textToCopy).then(() => {
-                const tooltip = el.parentElement.querySelector('.copy-tooltip');
+                const tooltip = element.parentElement.querySelector('.copy-tooltip');
                 if (tooltip) {
                     tooltip.classList.add('show');
-                    setTimeout(() => tooltip.classList.remove('show'), 1200);
+                    setTimeout(() => tooltip.classList.remove('show'), 2000);
                 }
             });
         }
 
-        function typeWriterText(element, percentLabel, responseObj, speed = 6, onComplete) {
-            if (responseObj.type === 'image') {
-                element.innerHTML = responseObj.text;
-                if (percentLabel) percentLabel.style.display = 'none';
-                if (!userScrolledUp) chatContainer.scrollTop = chatContainer.scrollHeight;
-                if (onComplete) onComplete();
-                return;
-            }
-
-            let fullText = responseObj.text;
-            let index = 0;
-            element.innerHTML = '';
-
-            function typeNext() {
-                if (index < fullText.length) {
-                    element.innerHTML = renderMessageContent(fullText.slice(0, index + 1));
-                    
-                    if (thinkingToggle.checked && percentLabel) {
-                        const p = Math.floor(((index + 1) / fullText.length) * 100);
-                        percentLabel.textContent = p + "% think";
-                    } else if (percentLabel) {
-                        percentLabel.style.display = 'none';
-                    }
-
-                    if (!userScrolledUp) {
-                        chatContainer.scrollTop = chatContainer.scrollHeight;
-                    }
-
-                    index++;
-                    setTimeout(typeNext, speed);
-                } else {
-                    if (percentLabel) percentLabel.style.display = 'none';
-                    if (!userScrolledUp) {
-                        chatContainer.scrollTop = chatContainer.scrollHeight;
-                    }
-                    if (onComplete) onComplete();
-                }
-            }
-            typeNext();
+        function copyCode(button) {
+            const codeBlock = button.parentElement.nextElementSibling;
+            const codeText = codeBlock.innerText;
+            navigator.clipboard.writeText(codeText).then(() => {
+                const originalText = button.innerText;
+                button.innerText = 'Copied!';
+                setTimeout(() => button.innerText = originalText, 2000);
+            });
         }
 
-        async function sendMessage() {
+        function appendUserMessage(text, imageData) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'message-wrapper user-wrapper';
+            
+            let imgHTML = imageData ? `<br><img src="${imageData}" class="msg-image">` : '';
+            
+            wrapper.innerHTML = `
+                <div class="message-box-outer">
+                    <div class="copy-tooltip">Copied!</div>
+                    <div class="message user-msg" onclick="copyMessageText(this)">
+                        <div class="msg-text">${renderMessageContent(text)}${imgHTML}</div>
+                    </div>
+                </div>`;
+            chatContainer.appendChild(wrapper);
+            if (!userScrolledUp) chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function appendBotThinking() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'message-wrapper capella-wrapper';
+            wrapper.id = 'thinkingWrapper';
+            wrapper.innerHTML = `
+                <div class="message-header">
+                    <div class="message-header-left">
+                        <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="sender-icon">
+                        <span class="sender-name">Capella</span>
+                    </div>
+                </div>
+                <div class="message-box-outer">
+                    <div class="message capella-msg">
+                        <div class="thinking-indicator">
+                            <div class="blue-dot-pulse"></div>
+                            <span style="font-size:0.85rem; color:#94a3b8;">Capella is thinking...</span>
+                        </div>
+                    </div>
+                </div>`;
+            chatContainer.appendChild(wrapper);
+            if (!userScrolledUp) chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function removeBotThinking() {
+            const thinking = document.getElementById('thinkingWrapper');
+            if (thinking) thinking.remove();
+        }
+
+        function appendBotMessage(responseObj) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'message-wrapper capella-wrapper';
+            
+            const renderedContent = responseObj.type === 'image' 
+                ? responseObj.text 
+                : renderMessageContent(responseObj.text);
+
+            wrapper.innerHTML = `
+                <div class="message-header">
+                    <div class="message-header-left">
+                        <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="sender-icon">
+                        <span class="sender-name">Capella</span>
+                    </div>
+                </div>
+                <div class="message-box-outer">
+                    <div class="copy-tooltip">Copied!</div>
+                    <div class="message capella-msg" onclick="copyMessageText(this)">
+                        <div class="msg-text">${renderedContent}</div>
+                    </div>
+                </div>`;
+            chatContainer.appendChild(wrapper);
+            if (!userScrolledUp) chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function handleSendMessage() {
             if (isGenerating) {
                 if (abortController) abortController.abort();
                 isGenerating = false;
-                sendBtn.textContent = 'Send';
+                sendBtn.innerText = 'Send';
                 sendBtn.classList.remove('stop-mode');
-                const currentTb = document.getElementById('thinkingBubble');
-                if (currentTb) currentTb.remove();
+                removeBotThinking();
                 return;
             }
 
             const text = userInput.value.trim();
             if (!text && !selectedImageData) return;
 
-            userScrolledUp = false;
+            const currentPrompt = text;
+            const currentImg = selectedImageData;
+
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            selectedImageData = null;
+            fileInput.value = '';
+            previewWrapper.classList.remove('active');
+
+            appendUserMessage(currentPrompt, currentImg);
+            chatHistory.push({ role: 'user', content: currentPrompt });
+
             isGenerating = true;
-            sendBtn.textContent = 'Stop';
+            sendBtn.innerText = 'Stop';
             sendBtn.classList.add('stop-mode');
 
-            const uWrapper = document.createElement('div');
-            uWrapper.className = 'message-wrapper user-wrapper';
-            let uHtml = `<div class="message-header"><div style="flex:1"></div><span class="sender-name">You</span></div><div class="message-box-outer"><div class="copy-tooltip">Copied!</div><div class="message user-msg" onclick="copyMessageText(this)">`;
-            if (text) uHtml += `<div class="msg-text">${text.replace(/</g, "&lt;")}</div>`;
-            if (selectedImageData) uHtml += `<img src="${selectedImageData}" class="msg-image">`;
-            uHtml += `</div></div>`;
-            uWrapper.innerHTML = uHtml;
-            chatContainer.appendChild(uWrapper);
-
-            const currentText = text;
-            userInput.value = ''; userInput.style.height = 'auto';
-            document.getElementById('removeImgBtn').click(); 
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-
-            const tb = document.createElement('div');
-            tb.className = 'message-wrapper capella-wrapper';
-            tb.id = 'thinkingBubble';
-            tb.innerHTML = `<div class="message-header"><div class="message-header-left"><img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="sender-icon"><span class="sender-name">Capella</span></div></div>
-            <div class="message capella-msg"><div class="thinking-indicator"><div class="blue-dot-pulse"></div><span style="font-size:0.8rem;color:#94a3b8">Searching Web & Thinking...</span></div></div>`;
-            chatContainer.appendChild(tb);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-
-            let aiResponseObj = await fetchResponse(currentText);
-            const currentTb = document.getElementById('thinkingBubble');
-            if (currentTb) currentTb.remove();
-
-            if (aiResponseObj === null) {
-                isGenerating = false;
-                sendBtn.textContent = 'Send';
-                sendBtn.classList.remove('stop-mode');
-                return; 
+            if (thinkingToggle.checked) {
+                appendBotThinking();
             }
 
-            chatHistory.push({ role: 'user', content: currentText });
-            chatHistory.push({ role: 'assistant', content: aiResponseObj.text });
+            const responseObj = await fetchResponse(currentPrompt);
 
-            const aiWrapper = document.createElement('div');
-            aiWrapper.className = 'message-wrapper capella-wrapper';
-            aiWrapper.innerHTML = `
-                <div class="message-header">
-                    <div class="message-header-left">
-                        <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="sender-icon">
-                        <span class="sender-name">Capella</span>
-                    </div>
-                    <span class="type-percentage">0% think</span>
-                </div>
-                <div class="message-box-outer">
-                    <div class="copy-tooltip">Copied!</div>
-                    <div class="message capella-msg" onclick="copyMessageText(this)">
-                        <div class="msg-text"></div>
-                    </div>
-                </div>
-            `;
-            chatContainer.appendChild(aiWrapper);
+            removeBotThinking();
+            isGenerating = false;
+            sendBtn.innerText = 'Send';
+            sendBtn.classList.remove('stop-mode');
 
-            const msgTextDiv = aiWrapper.querySelector('.msg-text');
-            const pctLabel = aiWrapper.querySelector('.type-percentage');
-
-            typeWriterText(msgTextDiv, pctLabel, aiResponseObj, 6, () => {
-                isGenerating = false;
-                sendBtn.textContent = 'Send';
-                sendBtn.classList.remove('stop-mode');
-            });
+            if (responseObj) {
+                appendBotMessage(responseObj);
+                if (responseObj.type === 'text') {
+                    chatHistory.push({ role: 'assistant', content: responseObj.text });
+                }
+            }
         }
 
-        sendBtn.addEventListener('click', sendMessage);
+        sendBtn.addEventListener('click', handleSendMessage);
         userInput.addEventListener('keydown', (e) => {
-            e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendMessage());
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+            }
         });
     </script>
 </body>
