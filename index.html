@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- SEO Meta Tags -->
+    <title>Capella AI - Intelligent Assistant | Owner Shadman Wasif Faruque</title>
+    <meta name="description" content="Capella AI is an intelligent assistant created and owned by Shadman Wasif Faruque.">
+    <meta name="keywords" content="Capella AI, Shadman Wasif Faruque, AI assistant, owner Shadman Wasif Faruque">
+    <meta name="author" content="Shadman Wasif Faruque">
+
+    <link rel="icon" type="image/png" href="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png">
+
+    <style>
+        :root {
+            --bg-color: #0d0f12;
+            --text-color: #f0f3f8;
+            --header-bg: rgba(18, 20, 26, 0.9);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --sidebar-bg: #12141a;
+            --msg-capella: #181b22;
+            --input-bg: #161820;
+            --code-bg: #0d0e12;
+        }
+
+        body.light-mode {
+            --bg-color: #f4f6f9;
+            --text-color: #1e293b;
+            --header-bg: rgba(255, 255, 255, 0.9);
+            --border-color: rgba(0, 0, 0, 0.08);
+            --sidebar-bg: #ffffff;
+            --msg-capella: #ffffff;
+            --input-bg: #e2e8f0;
+            --code-bg: #1e293b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+
+        .splash-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #07080a; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; z-index: 9999; transition: opacity 0.5s ease, visibility 0.5s ease; }
+        .splash-screen.hide { opacity: 0; visibility: hidden; }
+        .splash-logo { width: 80px; height: 80px; border-radius: 20%; object-fit: cover; animation: pulse 2s infinite ease-in-out; }
+        .splash-title { font-size: 2.2rem; font-weight: 700; background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        @keyframes pulse { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.4)); } 50% { transform: scale(1.08); filter: drop-shadow(0 0 25px rgba(168, 85, 247, 0.7)); } }
+
+        .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--header-bg); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); z-index: 10; flex-shrink: 0; }
+        .header-left, .header-right { display: flex; align-items: center; gap: 10px; }
+        .brand-box { display: flex; align-items: center; gap: 8px; }
+        .app-logo { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
+        .app-title { font-size: 1.2rem; font-weight: 700; background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .icon-btn { background: none; border: none; color: inherit; font-size: 1.2rem; cursor: pointer; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .icon-btn:hover { background-color: rgba(128, 128, 128, 0.15); }
+
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 999; display: none; }
+        .overlay.active { display: block; }
+
+        .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background-color: var(--sidebar-bg); border-right: 1px solid var(--border-color); z-index: 1000; transition: left 0.3s ease; display: flex; flex-direction: column; }
+        .sidebar.open { left: 0; }
+        .sidebar-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
+        .sidebar-content { flex: 1; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; }
+        .new-chat-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+
+        .settings-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); width: 90%; max-width: 400px; background-color: var(--sidebar-bg); border: 1px solid var(--border-color); border-radius: 16px; z-index: 2000; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; opacity: 0; transition: all 0.3s ease; }
+        .settings-panel.active { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        .settings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .setting-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 0.95rem; }
+        .setting-item select, .setting-item input[type="checkbox"] { padding: 6px; border-radius: 6px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); }
+
+        .chat-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
+        .message-wrapper { display: flex; flex-direction: column; max-width: 88%; position: relative; }
+        .user-wrapper { align-self: flex-end; }
+        .capella-wrapper { align-self: flex-start; }
+
+        .message-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; width: 100%; }
+        .message-header-left { display: flex; align-items: center; gap: 6px; }
+        .sender-icon { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+        .sender-name { font-size: 0.78rem; color: #94a3b8; font-weight: 500; }
+        .type-percentage { font-size: 0.7rem; color: #818cf8; font-weight: 600; background: rgba(99,102,241,0.1); padding: 2px 6px; border-radius: 10px; }
+
+        .message-box-outer { position: relative; display: inline-block; }
+        .message { padding: 12px 16px; border-radius: 16px; line-height: 1.5; font-size: 0.92rem; word-wrap: break-word; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); cursor: pointer; position: relative; }
+        .user-msg { background: linear-gradient(135deg, #312e81, #1e1b4b); color: #f1f5f9; border-bottom-right-radius: 4px; border: 1px solid rgba(99, 102, 241, 0.3); }
+        .capella-msg { background-color: var(--msg-capella); color: var(--text-color); border-bottom-left-radius: 4px; border: 1px solid var(--border-color); }
+
+        .copy-tooltip { position: absolute; top: -32px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 10; border: 1px solid rgba(255,255,255,0.1); }
+        .copy-tooltip.show { opacity: 1; }
+
+        .img-container { position: relative; display: inline-block; margin-top: 8px; }
+        .msg-image { max-width: 100%; max-height: 280px; border-radius: 10px; display: block; border: 1px solid rgba(255,255,255,0.1); }
+        .download-img-btn { margin-top: 8px; background: rgba(99, 102, 241, 0.9); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+        .download-img-btn:hover { background: rgba(79, 70, 229, 1); }
+
+        .code-block { background-color: var(--code-bg); border: 1px solid var(--border-color); border-radius: 8px; margin: 10px 0; overflow: hidden; }
+        .code-header { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background-color: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border-color); font-size: 0.72rem; color: #818cf8; font-weight: 600; }
+        .code-copy-btn { background: rgba(255, 255, 255, 0.1); border: none; color: #cbd5e1; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+        .code-content { padding: 12px; font-family: 'Fira Code', monospace; white-space: pre-wrap; overflow-x: auto; font-size: 0.82rem; color: #e2e8f0; }
+
+        .input-container { padding: 10px 12px; background: var(--header-bg); backdrop-filter: blur(12px); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .preview-wrapper { display: none; position: relative; align-self: flex-start; }
+        .preview-wrapper.active { display: block; }
+        .img-preview { height: 55px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); }
+        .remove-img-btn { position: absolute; top: -6px; right: -6px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; }
+
+        .input-box { display: flex; align-items: center; gap: 8px; background-color: var(--input-bg); border-radius: 20px; padding: 6px 12px; border: 1px solid var(--border-color); }
+        .input-box textarea { flex: 1; background: none; border: none; color: var(--text-color); resize: none; max-height: 120px; outline: none; font-size: 0.92rem; padding: 4px 0; }
+
+        .send-btn { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; padding: 8px 14px; border-radius: 16px; cursor: pointer; font-weight: 600; font-size: 0.82rem; flex-shrink: 0; }
+        .send-btn.stop-mode { background: #ef4444; }
+
+        .thinking-indicator { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+        .blue-dot-pulse { width: 8px; height: 8px; background-color: #818cf8; border-radius: 50%; animation: dotPulse 1.2s infinite ease-in-out; }
+        @keyframes dotPulse { 0%, 100% { transform: scale(0.8); opacity: 0.4; } 50% { transform: scale(1.3); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <!-- Splash Screen -->
+    <div class="splash-screen" id="splashScreen">
+        <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" alt="Capella Logo" class="splash-logo">
+        <div class="splash-title">Capella AI</div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <button class="icon-btn" id="menuBtn">☰</button>
+            <div class="brand-box">
+                <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="app-logo">
+                <div class="app-title">Capella</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="icon-btn" id="settingsBtn">⚙️</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-box">
+                <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="app-logo">
+                <span style="font-weight: 600;">Menu</span>
+            </div>
+            <button class="icon-btn" id="closeBtn">✕</button>
+        </div>
+        <div class="sidebar-content">
+            <div>
+                <button class="new-chat-btn" id="newChatBtn">➕ New Chat</button>
+            </div>
+            <div style="padding-top: 15px; border-top: 1px solid var(--border-color); font-size: 13px; color: #94a3b8; text-align: center;">
+                <p style="margin-bottom: 5px;">Owner & Developer</p>
+                <a href="https://shadmanwasif.github.io/Shadman-Wasif-Faruque/" target="_blank" style="color: #818cf8; text-decoration: none; font-weight: 600;">
+                    Shadman web
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+            <span style="font-weight: 700; font-size: 1.1rem;">Settings</span>
+            <button class="icon-btn" id="closeSettingsBtn">✕</button>
+        </div>
+        <div class="setting-item">
+            <span>Theme Mode</span>
+            <select id="themeSelect">
+                <option value="dark">Dark Mode</option>
+                <option value="light">Light Mode</option>
+            </select>
+        </div>
+        <div class="setting-item">
+            <span>Live Web Search</span>
+            <input type="checkbox" id="searchToggle" checked>
+        </div>
+        <div class="setting-item">
+            <span>Thinking Mode</span>
+            <input type="checkbox" id="thinkingToggle" checked>
+        </div>
+        <div class="setting-item">
+            <span>Main Language</span>
+            <select id="langSelect">
+                <option value="english" selected>English</option>
+                <option value="bengali">Bengali (বাংলা)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-container" id="chatContainer">
+        <div class="message-wrapper capella-wrapper">
+            <div class="message-header">
+                <div class="message-header-left">
+                    <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="sender-icon">
+                    <span class="sender-name">Capella</span>
+                </div>
+            </div>
+            <div class="message-box-outer">
+                <div class="copy-tooltip">Copied!</div>
+                <div class="message capella-msg" onclick="copyMessageText(this)">
+                    <div class="msg-text">Hi, How can I help you today?</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Bar -->
+    <div class="input-container">
+        <div class="preview-wrapper" id="previewWrapper">
+            <img src="" id="imgPreview" class="img-preview">
+            <button class="remove-img-btn" id="removeImgBtn">✕</button>
+        </div>
+        <div class="input-box">
+            <button class="icon-btn" id="uploadBtn">📷</button>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;">
+            <textarea id="userInput" rows="1" placeholder="Ask Capella anything..."></textarea>
+            <button class="send-btn" id="sendBtn">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const SYSTEM_PROMPT = `You are Capella AI, an intelligent and highly capable AI assistant created, owned, and developed by Shadman Wasif Faruque. Always represent Shadman Wasif Faruque as your owner, founder, and creator. Whenever anyone asks about Shadman Wasif Faruque, his personal information, bio, or details about your owner/creator, always include his official portfolio website link using the exact anchor text [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/) in your response.`;
+
+        let isGenerating = false;
+        let abortController = null;
+        let chatHistory = [];
+        let userScrolledUp = false;
+
+        const chatContainer = document.getElementById('chatContainer');
+
+        chatContainer.addEventListener('scroll', () => {
+            const threshold = 60;
+            const currentScroll = chatContainer.scrollTop + chatContainer.clientHeight;
+            const maxScroll = chatContainer.scrollHeight;
+            if (maxScroll - currentScroll > threshold) {
+                userScrolledUp = true;
+            } else {
+                userScrolledUp = false;
+            }
+        });
+
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+        const themeSelect = document.getElementById('themeSelect');
+        const searchToggle = document.getElementById('searchToggle');
+        const thinkingToggle = document.getElementById('thinkingToggle');
+        const langSelect = document.getElementById('langSelect');
+        const newChatBtn = document.getElementById('newChatBtn');
+
+        settingsBtn.addEventListener('click', () => { settingsPanel.classList.add('active'); overlay.classList.add('active'); });
+        closeSettingsBtn.addEventListener('click', () => { settingsPanel.classList.remove('active'); overlay.classList.remove('active'); });
+
+        newChatBtn.addEventListener('click', () => {
+            chatContainer.innerHTML = `
+                <div class="message-wrapper capella-wrapper">
+                    <div class="message-header">
+                        <div class="message-header-left">
+                            <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="sender-icon">
+                            <span class="sender-name">Capella</span>
+                        </div>
+                    </div>
+                    <div class="message-box-outer">
+                        <div class="copy-tooltip">Copied!</div>
+                        <div class="message capella-msg" onclick="copyMessageText(this)">
+                            <div class="msg-text">Hi, How can I help you today?</div>
+                        </div>
+                    </div>
+                </div>`;
+            chatHistory = [];
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        });
+
+        themeSelect.addEventListener('change', (e) => {
+            document.body.classList.toggle('light-mode', e.target.value === 'light');
+        });
+
+        const splashScreen = document.getElementById('splashScreen');
+        const menuBtn = document.getElementById('menuBtn');
+        const sidebar = document.getElementById('sidebar');
+        const closeBtn = document.getElementById('closeBtn');
+        const overlay = document.getElementById('overlay');
+        const sendBtn = document.getElementById('sendBtn');
+        const userInput = document.getElementById('userInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const previewWrapper = document.getElementById('previewWrapper');
+        const imgPreview = document.getElementById('imgPreview');
+        let selectedImageData = null;
+
+        window.addEventListener('load', () => setTimeout(() => splashScreen.classList.add('hide'), 1500));
+        menuBtn.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('active'); });
+        closeBtn.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); });
+        overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); settingsPanel.classList.remove('active'); });
+
+        userInput.addEventListener('input', () => {
+            userInput.style.height = 'auto';
+            userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
+        });
+
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    selectedImageData = event.target.result;
+                    imgPreview.src = selectedImageData;
+                    previewWrapper.classList.add('active');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        document.getElementById('removeImgBtn').addEventListener('click', () => {
+            selectedImageData = null; fileInput.value = ''; previewWrapper.classList.remove('active');
+        });
+
+        function isImageGenerationRequest(text) {
+            const lower = text.toLowerCase();
+            const keywords = ['generate image', 'create image', 'draw', 'picture of', 'pic make', 'make a pic', 'image of', 'ছবি তৈরি', 'ছবি আঁক', 'ছবি বানিয়ে দাও', 'ছবি বানাও', 'একটি ছবি'];
+            return keywords.some(kw => lower.includes(kw));
+        }
+
+        async function fetchResponse(promptText) {
+            abortController = new AbortController();
+            const selectedLang = langSelect.value;
+            
+            if (isImageGenerationRequest(promptText)) {
+                const cleanPrompt = promptText.replace(/(generate image|create image|picture of|ছবি বানাও|ছবি তৈরি|একটি ছবি)/gi, '').trim();
+                const encodedPrompt = encodeURIComponent(cleanPrompt || promptText);
+                const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&private=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`;
+                
+                return { 
+                    type: 'image', 
+                    text: `Here is your generated image:<br><br><div class="img-container"><img src="${imageUrl}" class="msg-image" alt="Generated Image"><br><a href="${imageUrl}" target="_blank" download="capella_image.jpg" class="download-img-btn">⬇ Download</a></div>` 
+                };
+            }
+
+            try {
+                const messagesForServer = [
+                    { role: 'system', content: SYSTEM_PROMPT + `\nInstruction: Reply fluently in ${selectedLang}. Whenever you mention the creator/owner Shadman Wasif Faruque's website or portfolio, use the markdown link format: [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/).` },
+                    ...chatHistory,
+                    { role: 'user', content: promptText }
+                ];
+
+                const res = await fetch('http://localhost:3000/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        messages: messagesForServer,
+                        enableSearch: searchToggle.checked 
+                    }),
+                    signal: abortController.signal
+                });
+
+                const data = await res.json();
+                if (!res.ok) return { type: 'text', text: `⚠️ API Error: ${data.error || 'Server issue'}` };
+
+                return { type: 'text', text: data.reply || "No response content received." };
+            } catch(e) {
+                if (e.name === 'AbortError') return null;
+                return { type: 'text', text: "⚠️ Connection Error: Please make sure your 'node server.js' backend is running." };
+            }
+        }
+
+        function renderMessageContent(text) {
+            if (!text) return '';
+            if (text.includes('img-container')) {
+                return text;
+            }
+
+            let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            
+            html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+                return `<div class="code-block"><div class="code-header"><span>${(lang||'CODE').toUpperCase()}</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-content">${code}</div></div>`;
+            });
+
+            // Markdown Links: [Title](URL)
+            html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color: #818cf8; text-decoration: underline;">$1</a>');
+
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Plain links fallback
+            html = html.replace(/(https?:\/\/[^\s<]+)(?![^<]*>|[^<>]*<\/a>)/g, '<a href="$1" target="_blank" style="color: #818cf8; text-decoration: underline;">$1</a>');
+            
+            html = html.replace(/\n/g, '<br>');
+
+            return html;
+        }
+
+        window.copyCode = function(btn) {
+            const code = btn.closest('.code-block').querySelector('.code-content').innerText;
+            navigator.clipboard.writeText(code).then(() => { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500); });
+        }
+
+        window.copyMessageText = function(el) {
+            const textDiv = el.querySelector('.msg-text');
+            const textToCopy = textDiv ? textDiv.innerText : el.innerText;
+            
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const tooltip = el.parentElement.querySelector('.copy-tooltip');
+                if (tooltip) {
+                    tooltip.classList.add('show');
+                    setTimeout(() => tooltip.classList.remove('show'), 1200);
+                }
+            });
+        }
+
+        function typeWriterText(element, percentLabel, responseObj, speed = 6, onComplete) {
+            if (responseObj.type === 'image') {
+                element.innerHTML = responseObj.text;
+                if (percentLabel) percentLabel.style.display = 'none';
+                if (!userScrolledUp) chatContainer.scrollTop = chatContainer.scrollHeight;
+                if (onComplete) onComplete();
+                return;
+            }
+
+            let fullText = responseObj.text;
+            let index = 0;
+            element.innerHTML = '';
+
+            function typeNext() {
+                if (index < fullText.length) {
+                    element.innerHTML = renderMessageContent(fullText.slice(0, index + 1));
+                    
+                    if (thinkingToggle.checked && percentLabel) {
+                        const p = Math.floor(((index + 1) / fullText.length) * 100);
+                        percentLabel.textContent = p + "% think";
+                    } else if (percentLabel) {
+                        percentLabel.style.display = 'none';
+                    }
+
+                    if (!userScrolledUp) {
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
+
+                    index++;
+                    setTimeout(typeNext, speed);
+                } else {
+                    if (percentLabel) percentLabel.style.display = 'none';
+                    if (!userScrolledUp) {
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
+                    if (onComplete) onComplete();
+                }
+            }
+            typeNext();
+        }
+
+        async function sendMessage() {
+            if (isGenerating) {
+                if (abortController) abortController.abort();
+                isGenerating = false;
+                sendBtn.textContent = 'Send';
+                sendBtn.classList.remove('stop-mode');
+                const currentTb = document.getElementById('thinkingBubble');
+                if (currentTb) currentTb.remove();
+                return;
+            }
+
+            const text = userInput.value.trim();
+            if (!text && !selectedImageData) return;
+
+            userScrolledUp = false;
+            isGenerating = true;
+            sendBtn.textContent = 'Stop';
+            sendBtn.classList.add('stop-mode');
+
+            const uWrapper = document.createElement('div');
+            uWrapper.className = 'message-wrapper user-wrapper';
+            let uHtml = `<div class="message-header"><div style="flex:1"></div><span class="sender-name">You</span></div><div class="message-box-outer"><div class="copy-tooltip">Copied!</div><div class="message user-msg" onclick="copyMessageText(this)">`;
+            if (text) uHtml += `<div class="msg-text">${text.replace(/</g, "&lt;")}</div>`;
+            if (selectedImageData) uHtml += `<img src="${selectedImageData}" class="msg-image">`;
+            uHtml += `</div></div>`;
+            uWrapper.innerHTML = uHtml;
+            chatContainer.appendChild(uWrapper);
+
+            const currentText = text;
+            userInput.value = ''; userInput.style.height = 'auto';
+            document.getElementById('removeImgBtn').click(); 
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            const tb = document.createElement('div');
+            tb.className = 'message-wrapper capella-wrapper';
+            tb.id = 'thinkingBubble';
+            tb.innerHTML = `<div class="message-header"><div class="message-header-left"><img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="sender-icon"><span class="sender-name">Capella</span></div></div>
+            <div class="message capella-msg"><div class="thinking-indicator"><div class="blue-dot-pulse"></div><span style="font-size:0.8rem;color:#94a3b8">Searching Web & Thinking...</span></div></div>`;
+            chatContainer.appendChild(tb);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            let aiResponseObj = await fetchResponse(currentText);
+            const currentTb = document.getElementById('thinkingBubble');
+            if (currentTb) currentTb.remove();
+
+            if (aiResponseObj === null) {
+                isGenerating = false;
+                sendBtn.textContent = 'Send';
+                sendBtn.classList.remove('stop-mode');
+                return; 
+            }
+
+            chatHistory.push({ role: 'user', content: currentText });
+            chatHistory.push({ role: 'assistant', content: aiResponseObj.text });
+
+            const aiWrapper = document.createElement('div');
+            aiWrapper.className = 'message-wrapper capella-wrapper';
+            aiWrapper.innerHTML = `
+                <div class="message-header">
+                    <div class="message-header-left">
+                        <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="sender-icon">
+                        <span class="sender-name">Capella</span>
+                    </div>
+                    <span class="type-percentage">0% think</span>
+                </div>
+                <div class="message-box-outer">
+                    <div class="copy-tooltip">Copied!</div>
+                    <div class="message capella-msg" onclick="copyMessageText(this)">
+                        <div class="msg-text"></div>
+                    </div>
+                </div>
+            `;
+            chatContainer.appendChild(aiWrapper);
+
+            const msgTextDiv = aiWrapper.querySelector('.msg-text');
+            const pctLabel = aiWrapper.querySelector('.type-percentage');
+
+            typeWriterText(msgTextDiv, pctLabel, aiResponseObj, 6, () => {
+                isGenerating = false;
+                sendBtn.textContent = 'Send';
+                sendBtn.classList.remove('stop-mode');
+            });
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keydown', (e) => {
+            e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendMessage());
+        });
+    </script>
+</body>
+</html>
