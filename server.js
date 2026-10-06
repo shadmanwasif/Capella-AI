@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path'); // পাথ (path) মডিউলটি যুক্ত করতে হবে
 const cors = require('cors');
 const { Groq } = require('groq-sdk');
 const { tavily } = require('@tavily/core');
@@ -9,6 +10,9 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+// ফ্রন্টএন্ড ফাইলগুলো (index.html, style.css, script.js) দেখানোর জন্য এটি জরুরি
+app.use(express.static(path.join(__dirname)));
 
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
@@ -97,6 +101,6 @@ ${searchData}`
 });
 
 app.listen(port, () => {
-    console.log(`🚀 Capella AI Backend is running on http://localhost:${port}`);
+    console.log(`🚀 Capella AI Backend is running on port ${port}`);
     console.log(`🌐 Smart Web Search Enabled`);
 });
