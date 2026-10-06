@@ -39,7 +39,8 @@ async function sendMessage() {
     chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-        const response = await fetch('http://localhost:3000/api/chat', {
+        // রেন্ডার লাইভ সার্ভারের সাথে সংযোগের জন্য শুধু '/api/chat' ব্যবহার করা হলো
+        const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ messages: chatHistory })
@@ -58,7 +59,7 @@ async function sendMessage() {
 
     } catch (error) {
         document.getElementById(loadingId).remove();
-        appendMessage('bot', `<span class="error-msg">⚠️ API Error: ${error.message}</span>`);
+        appendMessage('bot`, `<span class="error-msg">⚠️ API Error: ${error.message}</span>`);
     }
 }
 
