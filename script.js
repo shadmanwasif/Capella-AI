@@ -59,7 +59,7 @@ async function sendMessage() {
 
     } catch (error) {
         document.getElementById(loadingId).remove();
-        appendMessage('bot`, `<span class="error-msg">⚠️ API Error: ${error.message}</span>`);
+        appendMessage('bot', `<span class="error-msg">⚠️ API Error: ${error.message}</span>`);
     }
 }
 
