@@ -88,8 +88,8 @@
         .copy-tooltip.show { opacity: 1; }
 
         .img-container { position: relative; display: inline-block; margin-top: 8px; }
-        .msg-image { max-width: 100%; max-height: 280px; border-radius: 10px; display: block; border: 1px solid rgba(255,255,255,0.1); }
-        .download-img-btn { margin-top: 8px; background: rgba(99, 102, 241, 0.9); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+        .msg-image { max-width: 100%; max-height: 320px; border-radius: 12px; display: block; border: 1px solid rgba(255,255,255,0.1); margin-top: 8px; }
+        .download-img-btn { margin-top: 10px; background: rgba(99, 102, 241, 0.9); color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s; }
         .download-img-btn:hover { background: rgba(79, 70, 229, 1); }
 
         .code-block { background-color: var(--code-bg); border: 1px solid var(--border-color); border-radius: 8px; margin: 10px 0; overflow: hidden; }
@@ -185,16 +185,16 @@
             <span>Main Language</span>
             <select id="langSelect">
                 <option value="auto" selected>Auto Detect</option>
-                <option value="english">English</option>
-                <option value="bengali">Bengali (বাংলা)</option>
-                <option value="spanish">Spanish (Español)</option>
-                <option value="hindi">Hindi (हिंदी)</option>
-                <option value="arabic">Arabic (العربية)</option>
-                <option value="french">French (Français)</option>
-                <option value="german">German (Deutsch)</option>
-                <option value="chinese">Chinese (中文)</option>
-                <option value="japanese">Japanese (日本語)</option>
-                <option value="urdu">Urdu (اردو)</option>
+                <option value="English">English</option>
+                <option value="Bengali">Bengali (বাংলা)</option>
+                <option value="Spanish">Spanish (Español)</option>
+                <option value="Hindi">Hindi (हिंदी)</option>
+                <option value="Arabic">Arabic (العربية)</option>
+                <option value="French">French (Français)</option>
+                <option value="German">German (Deutsch)</option>
+                <option value="Chinese">Chinese (中文)</option>
+                <option value="Japanese">Japanese (日本語)</option>
+                <option value="Urdu">Urdu (اردو)</option>
             </select>
         </div>
     </div>
@@ -353,7 +353,7 @@
                     const imageUrl = imgData.imageUrl;
                     return { 
                         type: 'image', 
-                        text: `Here is your generated image:<br><br><div class="img-container"><img src="${imageUrl}" class="msg-image" alt="Generated Image"><br><a href="${imageUrl}" download="capella_image.jpg" target="_blank" class="download-img-btn">⬇ Download Image</a></div>` 
+                        text: `Here is your generated image:<br><div class="img-container"><img src="${imageUrl}" class="msg-image" alt="Generated Image"><br><a href="${imageUrl}" download="capella_image.jpg" target="_blank" class="download-img-btn">⬇ Download Image</a></div>` 
                     };
                 } catch (err) {
                     if (err.name === 'AbortError') return null;
@@ -362,7 +362,6 @@
             }
 
             try {
-                // সিস্টেমে ভাষা সিলেক্ট করা থাকলে বা অটো থাকলে নির্দেশ দেওয়া
                 const selectedLang = langSelect.value;
                 let langInstruction = "";
                 if (selectedLang !== "auto") {
@@ -371,11 +370,10 @@
                     langInstruction = `Respond naturally in the same language as the user's latest message or conversation context.`;
                 }
 
-                // ব্যাকএন্ডে পাঠানোর জন্য হিস্ট্রি ও নতুন সিস্টেম প্রম্পট তৈরি
                 const messagesForServer = [
                     {
                         role: 'system',
-                        content: `You are Capella AI, created and owned by Shadman Wasif Faruque. ${langInstruction} Always remember previous user conversation context.`
+                        content: `${langInstruction} Keep track of conversation context.`
                     },
                     ...chatHistory,
                     { role: 'user', content: promptText }
@@ -541,7 +539,6 @@
 
             appendUserMessage(currentPrompt, currentImg);
             
-            // চ্যাট মেমরিতে ইউজারের মেসেজ সেভ রাখা
             chatHistory.push({ role: 'user', content: currentPrompt });
 
             isGenerating = true;
@@ -562,7 +559,6 @@
             if (responseObj) {
                 appendBotMessage(responseObj);
                 if (responseObj.type === 'text') {
-                    // চ্যাট মেমরিতে বট রেসপন্স সেভ রাখা
                     chatHistory.push({ role: 'assistant', content: responseObj.text });
                 }
             }
