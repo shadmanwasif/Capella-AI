@@ -4,6 +4,7 @@ const path = require('path');
 const cors = require('cors');
 const { Groq } = require('groq-sdk');
 const { tavily } = require('@tavily/core');
+const fetch = require('node-fetch');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -17,6 +18,10 @@ const groq = new Groq({
 });
 
 const tvl = tavily({ apiKey: process.env.TAVILY_API_KEY });
+
+// Cloudflare Credentials
+const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID || 'Cfut_TgRLkUDAqyW4xqApVECoQ1xU0iienhbPURYrJmUE4dbf8660';
+const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN || 'A42f510f52506651c61fdbd6a367ce25';
 
 async function performWebSearch(query) {
     try {
@@ -51,6 +56,46 @@ function shouldSearch(message) {
     }
     return true;
 }
+
+// Image Generation Endpoint using Cloudflare Workers AI (FLUX.1-schnell)
+app.post('/api/generate-image', async (req, res) => {
+    try {
+        const { prompt } = req.body;
+        if (!prompt) {
+            return res.status(400).json({ error: "Prompt is required for image generation." });
+        }
+
+        console.log(`🎨 Generating image via Cloudflare Workers AI for prompt: "${prompt}"...`);
+
+        const response = await fetch(
+            `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/black-forest-labs/flux-1-schnell`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ prompt: prompt })
+            }
+        );
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Cloudflare API Error: ${errText}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const base64Image = buffer.toString('base64');
+        const imageUrl = `data:image/jpeg;base64,${base64Image}`;
+
+        res.json({ success: true, imageUrl: imageUrl });
+
+    } catch (error) {
+        console.error("Image Generation Error:", error.message);
+        res.status(500).json({ success: false, error: error.message || "Failed to generate image" });
+    }
+});
 
 app.post('/api/chat', async (req, res) => {
     try {
@@ -101,5 +146,5 @@ ${searchData}`
 
 app.listen(port, () => {
     console.log(`🚀 Capella AI Backend is running on port ${port}`);
-    console.log(`🌐 Model: openai/gpt-oss-20b Enabled`);
+    console.log(`🌐 Model: openai/gpt-oss-20b & Cloudflare Image Generation Enabled`);
 });
