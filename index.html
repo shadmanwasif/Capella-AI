@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta name="google-site-verification" content="yWzBxwyFTAcSOMSSuC1FSgg6_NHLy98x6sYI-xHeVLw" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
@@ -328,13 +327,29 @@
             
             if (isImageGenerationRequest(promptText)) {
                 const cleanPrompt = promptText.replace(/(generate image|create image|picture of|ছবি বানাও|ছবি তৈরি|একটি ছবি)/gi, '').trim();
-                const encodedPrompt = encodeURIComponent(cleanPrompt || promptText);
-                const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&private=true&model=flux&seed=${Math.floor(Math.random() * 1000)}`;
                 
-                return { 
-                    type: 'image', 
-                    text: `Here is your generated image:<br><br><div class="img-container"><img src="${imageUrl}" class="msg-image" alt="Generated Image"><br><a href="${imageUrl}" target="_blank" download="capella_image.jpg" class="download-img-btn">⬇ Download</a></div>` 
-                };
+                try {
+                    const imgRes = await fetch('/api/generate-image', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt: cleanPrompt || promptText }),
+                        signal: abortController.signal
+                    });
+                    
+                    const imgData = await imgRes.json();
+                    if (!imgRes.ok || !imgData.success) {
+                        return { type: 'text', text: `⚠️ Image Generation Error: ${imgData.error || 'Failed to generate'}` };
+                    }
+
+                    const imageUrl = imgData.imageUrl;
+                    return { 
+                        type: 'image', 
+                        text: `Here is your generated image:<br><br><div class="img-container"><img src="${imageUrl}" class="msg-image" alt="Generated Image"><br><a href="${imageUrl}" target="_blank" download="capella_image.jpg" class="download-img-btn">⬇ Download</a></div>` 
+                    };
+                } catch (err) {
+                    if (err.name === 'AbortError') return null;
+                    return { type: 'text', text: `⚠️ Image Generation Failed: ${err.message}` };
+                }
             }
 
             try {
