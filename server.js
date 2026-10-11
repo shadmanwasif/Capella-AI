@@ -19,9 +19,9 @@ const groq = new Groq({
 
 const tvl = tavily({ apiKey: process.env.TAVILY_API_KEY });
 
-// Cloudflare Credentials
-const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID || 'Cfut_TgRLkUDAqyW4xqApVECoQ1xU0iienhbPURYrJmUE4dbf8660';
-const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN || 'A42f510f52506651c61fdbd6a367ce25';
+// Cloudflare Credentials from Environment Variables
+const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
+const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 
 async function performWebSearch(query) {
     try {
@@ -65,14 +65,18 @@ app.post('/api/generate-image', async (req, res) => {
             return res.status(400).json({ error: "Prompt is required for image generation." });
         }
 
+        if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN) {
+            return res.status(500).json({ success: false, error: "Cloudflare credentials are not set." });
+        }
+
         console.log(`🎨 Generating image via Cloudflare Workers AI for prompt: "${prompt}"...`);
 
         const response = await fetch(
-            `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/black-forest-labs/flux-1-schnell`,
+            `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID.trim()}/ai/run/@cf/black-forest-labs/flux-1-schnell`,
             {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
+                    'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN.trim()}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ prompt: prompt })
