@@ -184,8 +184,17 @@
         <div class="setting-item">
             <span>Main Language</span>
             <select id="langSelect">
-                <option value="english" selected>English</option>
+                <option value="auto" selected>Auto Detect</option>
+                <option value="english">English</option>
                 <option value="bengali">Bengali (বাংলা)</option>
+                <option value="spanish">Spanish (Español)</option>
+                <option value="hindi">Hindi (हिंदी)</option>
+                <option value="arabic">Arabic (العربية)</option>
+                <option value="french">French (Français)</option>
+                <option value="german">German (Deutsch)</option>
+                <option value="chinese">Chinese (中文)</option>
+                <option value="japanese">Japanese (日本語)</option>
+                <option value="urdu">Urdu (اردو)</option>
             </select>
         </div>
     </div>
@@ -223,22 +232,12 @@
     </div>
 
     <script>
-        const SYSTEM_PROMPT = `You are Capella AI, an intelligent and highly capable AI assistant created, owned, and developed by Shadman Wasif Faruque. Always represent Shadman Wasif Faruque as your owner, founder, and creator. Whenever anyone asks about Shadman Wasif Faruque, his personal information, bio, or details about your owner/creator, always include his official portfolio website link using the exact anchor text [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/) in your response.`;
-
         let isGenerating = false;
         let abortController = null;
         let chatHistory = [];
         let userScrolledUp = false;
 
         const chatContainer = document.getElementById('chatContainer');
-
-        chatContainer.addEventListener('scroll', () => {
-            const threshold = 60;
-            const currentScroll = chatContainer.scrollTop + chatContainer.clientHeight;
-            const maxScroll = chatContainer.scrollHeight;
-            userScrolledUp = (maxScroll - currentScroll > threshold);
-        });
-
         const settingsBtn = document.getElementById('settingsBtn');
         const settingsPanel = document.getElementById('settingsPanel');
         const closeSettingsBtn = document.getElementById('closeSettingsBtn');
@@ -248,6 +247,28 @@
         const langSelect = document.getElementById('langSelect');
         const newChatBtn = document.getElementById('newChatBtn');
 
+        const splashScreen = document.getElementById('splashScreen');
+        const menuBtn = document.getElementById('menuBtn');
+        const sidebar = document.getElementById('sidebar');
+        const closeBtn = document.getElementById('closeBtn');
+        const overlay = document.getElementById('overlay');
+        const sendBtn = document.getElementById('sendBtn');
+        const userInput = document.getElementById('userInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const previewWrapper = document.getElementById('previewWrapper');
+        const imgPreview = document.getElementById('imgPreview');
+        let selectedImageData = null;
+
+        // Auto Scroll
+        chatContainer.addEventListener('scroll', () => {
+            const threshold = 60;
+            const currentScroll = chatContainer.scrollTop + chatContainer.clientHeight;
+            const maxScroll = chatContainer.scrollHeight;
+            userScrolledUp = (maxScroll - currentScroll > threshold);
+        });
+
+        // Event Listeners for UI & Settings
         settingsBtn.addEventListener('click', () => { settingsPanel.classList.add('active'); overlay.classList.add('active'); });
         closeSettingsBtn.addEventListener('click', () => { settingsPanel.classList.remove('active'); overlay.classList.remove('active'); });
 
@@ -276,20 +297,7 @@
             document.body.classList.toggle('light-mode', e.target.value === 'light');
         });
 
-        const splashScreen = document.getElementById('splashScreen');
-        const menuBtn = document.getElementById('menuBtn');
-        const sidebar = document.getElementById('sidebar');
-        const closeBtn = document.getElementById('closeBtn');
-        const overlay = document.getElementById('overlay');
-        const sendBtn = document.getElementById('sendBtn');
-        const userInput = document.getElementById('userInput');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const fileInput = document.getElementById('fileInput');
-        const previewWrapper = document.getElementById('previewWrapper');
-        const imgPreview = document.getElementById('imgPreview');
-        let selectedImageData = null;
-
-        window.addEventListener('load', () => setTimeout(() => splashScreen.classList.add('hide'), 1500));
+        window.addEventListener('load', () => setTimeout(() => splashScreen.classList.add('hide'), 1200));
         menuBtn.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('active'); });
         closeBtn.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); });
         overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); settingsPanel.classList.remove('active'); });
@@ -312,13 +320,14 @@
                 reader.readAsDataURL(file);
             }
         });
+
         document.getElementById('removeImgBtn').addEventListener('click', () => {
             selectedImageData = null; fileInput.value = ''; previewWrapper.classList.remove('active');
         });
 
         function isImageGenerationRequest(text) {
             const lower = text.toLowerCase();
-            const keywords = ['generate image', 'create image', 'draw', 'picture of', 'pic make', 'make a pic', 'image of', 'ছবি তৈরি', 'ছবি আঁক', 'ছবি বানিয়ে দাও', 'ছবি বানাও', 'একটি ছবি'];
+            const keywords = ['generate image', 'create image', 'draw', 'picture of', 'pic make', 'make a pic', 'image of', 'ছবি তৈরি', 'ছবি আঁক', 'ছবি বানিয়ে দাও', 'ছবি বানাও', 'একটি ছবি', 'foto de', 'bild von'];
             return keywords.some(kw => lower.includes(kw));
         }
 
@@ -326,7 +335,7 @@
             abortController = new AbortController();
             
             if (isImageGenerationRequest(promptText)) {
-                const cleanPrompt = promptText.replace(/(generate image|create image|picture of|ছবি বানাও|ছবি তৈরি|একটি ছবি)/gi, '').trim();
+                const cleanPrompt = promptText.replace(/(generate image|create image|picture of|ছবি বানাও|ছবি তৈরি|একটি ছবি|draw|make a pic)/gi, '').trim();
                 
                 try {
                     const imgRes = await fetch('/api/generate-image', {
@@ -344,7 +353,7 @@
                     const imageUrl = imgData.imageUrl;
                     return { 
                         type: 'image', 
-                        text: `Here is your generated image:<br><br><div class="img-container"><img src="${imageUrl}" class="msg-image" alt="Generated Image"><br><a href="${imageUrl}" target="_blank" download="capella_image.jpg" class="download-img-btn">⬇ Download</a></div>` 
+                        text: `Here is your generated image:<br><br><div class="img-container"><img src="${imageUrl}" class="msg-image" alt="Generated Image"><br><a href="${imageUrl}" download="capella_image.jpg" target="_blank" class="download-img-btn">⬇ Download Image</a></div>` 
                     };
                 } catch (err) {
                     if (err.name === 'AbortError') return null;
@@ -353,7 +362,21 @@
             }
 
             try {
+                // সিস্টেমে ভাষা সিলেক্ট করা থাকলে বা অটো থাকলে নির্দেশ দেওয়া
+                const selectedLang = langSelect.value;
+                let langInstruction = "";
+                if (selectedLang !== "auto") {
+                    langInstruction = `Respond STRICTLY in ${selectedLang} language.`;
+                } else {
+                    langInstruction = `Respond naturally in the same language as the user's latest message or conversation context.`;
+                }
+
+                // ব্যাকএন্ডে পাঠানোর জন্য হিস্ট্রি ও নতুন সিস্টেম প্রম্পট তৈরি
                 const messagesForServer = [
+                    {
+                        role: 'system',
+                        content: `You are Capella AI, created and owned by Shadman Wasif Faruque. ${langInstruction} Always remember previous user conversation context.`
+                    },
                     ...chatHistory,
                     { role: 'user', content: promptText }
                 ];
@@ -486,7 +509,7 @@
                 </div>
                 <div class="message-box-outer">
                     <div class="copy-tooltip">Copied!</div>
-                    <div class="message capella-msg" onclick="copyMessageText(this)">
+                    <div class="message capella-msg">
                         <div class="msg-text">${renderedContent}</div>
                     </div>
                 </div>`;
@@ -517,6 +540,8 @@
             previewWrapper.classList.remove('active');
 
             appendUserMessage(currentPrompt, currentImg);
+            
+            // চ্যাট মেমরিতে ইউজারের মেসেজ সেভ রাখা
             chatHistory.push({ role: 'user', content: currentPrompt });
 
             isGenerating = true;
@@ -537,6 +562,7 @@
             if (responseObj) {
                 appendBotMessage(responseObj);
                 if (responseObj.type === 'text') {
+                    // চ্যাট মেমরিতে বট রেসপন্স সেভ রাখা
                     chatHistory.push({ role: 'assistant', content: responseObj.text });
                 }
             }
