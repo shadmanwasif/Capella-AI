@@ -1,0 +1,41 @@
+# Google AI Bot (Gemini & Vertex AI)
+User-agent: Google-Extended
+Allow: /
+
+# OpenAI Bot (ChatGPT & SearchGPT)
+User-agent: GPTBot
+Allow: /
+
+# Anthropic Bot (Claude)
+User-agent: ClaudeBot
+Allow: /
+
+# Perplexity AI Bot
+User-agent: PerplexityBot
+Allow: /
+
+# xAI Bot (Grok)
+User-agent: Omgilibot
+Allow: /
+User-agent: Omgili
+Allow: /
+
+# Meta AI Bot (Llama & Facebook AI)
+User-agent: Meta-ExternalAgent
+Allow: /
+
+# Apple AI Bot (Apple Intelligence)
+User-agent: Applebot-Extended
+Allow: /
+
+# Amazon AI & Crawler Bot
+User-agent: Amazonbot
+Allow: /
+
+# Common Crawl (Many independent AI models use this database)
+User-agent: CCBot
+Allow: /
+
+# For all other search engines and bots
+User-agent: *
+Allow: /
