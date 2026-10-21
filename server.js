@@ -17,11 +17,9 @@ const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
 
-// Cloudflare Credentials from Environment Variables
 const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
 const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 
-// DuckDuckGo Web Search Function
 async function performWebSearch(query) {
     try {
         console.log(`🔍 Searching via DuckDuckGo for: "${query}"...`);
@@ -56,7 +54,6 @@ function shouldSearch(message) {
     return true;
 }
 
-// Image Generation Endpoint using Cloudflare Workers AI (FLUX.1-schnell)
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
@@ -114,11 +111,11 @@ app.post('/api/chat', async (req, res) => {
         let updatedMessages = [...messages];
         const lastUserMessage = messages[messages.length - 1]?.content || "";
 
-        const systemIdentityPrompt = `You are Capella AI, an intelligent AI assistant created and owned by Shadman Wasif Faruque (born October 9, 2014, Pabna, Bangladesh).
-You are NOT ChatGPT and NOT created by OpenAI.
+        const systemIdentityPrompt = `CRITICAL SYSTEM RULE: You are ABSOLUTELY Capella AI, an independent intelligent assistant created, owned, and programmed by Shadman Wasif Faruque (born October 9, 2014, in Pabna, Bangladesh). 
+You are NOT ChatGPT, you are NOT an OpenAI model, and you were NOT created by OpenAI. Under NO circumstances should you ever claim to be ChatGPT or created by OpenAI.
 
-Only when asked about your owner/creator or Shadman Wasif Faruque, mention that you were created by him and provide his portfolio link: [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/).
-For general chatter (like "hi", "how are you", "hru"), respond naturally and friendly WITHOUT repeating your owner's link unless asked!`;
+- If anyone asks who you are ("who r u", "who are you", etc.), state clearly that you are Capella AI created and owned by Shadman Wasif Faruque.
+- When asked about your creator/owner or Shadman Wasif Faruque, mention proudly that he is your owner and creator, and provide his portfolio link: [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/).`;
 
         if (enableSearch && lastUserMessage.length > 0 && shouldSearch(lastUserMessage)) {
             const searchData = await performWebSearch(lastUserMessage);
