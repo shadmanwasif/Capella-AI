@@ -211,7 +211,7 @@
             <div class="message-box-outer">
                 <div class="copy-tooltip">Copied!</div>
                 <div class="message capella-msg" onclick="copyMessageText(this)">
-                    <div class="msg-text">Hi, How can I help you today? 😊</div>
+                    <div class="msg-text">Hi, I am Capella AI created by Shadman Wasif Faruque! How can I help you today? 😊</div>
                 </div>
             </div>
         </div>
@@ -284,7 +284,7 @@
                     <div class="message-box-outer">
                         <div class="copy-tooltip">Copied!</div>
                         <div class="message capella-msg" onclick="copyMessageText(this)">
-                            <div class="msg-text">Hi, How can I help you today? 😊</div>
+                            <div class="msg-text">Hi, I am Capella AI created by Shadman Wasif Faruque! How can I help you today? 😊</div>
                         </div>
                     </div>
                 </div>`;
@@ -327,7 +327,7 @@
 
         function isImageGenerationRequest(text) {
             const lower = text.toLowerCase();
-            const keywords = ['generate image', 'create image', 'draw', 'picture of', 'pic make', 'make a pic', 'image of', 'ছবি তৈরি', 'ছবি আঁক', 'ছবি বানিয়ে দাও', 'ছবি বানাও', 'একটি ছবি', 'foto de', 'bild von'];
+            const keywords = ['generate image', 'create image', 'draw', 'picture of', 'pic make', 'make a pic', 'image of', 'ছবি তৈরি', 'ছবি আঁক', 'ছবি বানিয়ে দাও', 'ছবি বানাও', 'একটি ছবি', 'foto de', 'bild von', 'pic'];
             return keywords.some(kw => lower.includes(kw));
         }
 
@@ -335,7 +335,7 @@
             abortController = new AbortController();
             
             if (isImageGenerationRequest(promptText)) {
-                const cleanPrompt = promptText.replace(/(generate image|create image|picture of|ছবি বানাও|ছবি তৈরি|একটি ছবি|draw|make a pic)/gi, '').trim();
+                const cleanPrompt = promptText.replace(/(generate image|create image|picture of|ছবি বানাও|ছবি তৈরি|একটি ছবি|draw|make a pic|pic of|make a pic of)/gi, '').trim();
                 
                 try {
                     const imgRes = await fetch('/api/generate-image', {
@@ -353,7 +353,7 @@
                     const imageUrl = imgData.imageUrl;
                     return { 
                         type: 'image', 
-                        text: `Here is your generated image:<br><div class="img-container"><img src="${imageUrl}" class="msg-image" alt="Generated Image"><br><a href="${imageUrl}" download="capella_image.jpg" target="_blank" class="download-img-btn">⬇ Download Image</a></div>` 
+                        text: `<div class="img-container"><img src="${imageUrl}" class="msg-image" alt="Generated Image"><br><a href="${imageUrl}" download="capella_image.jpg" target="_blank" class="download-img-btn">⬇ Download Image</a></div>` 
                     };
                 } catch (err) {
                     if (err.name === 'AbortError') return null;
@@ -367,13 +367,13 @@
                 if (selectedLang !== "auto") {
                     langInstruction = `Respond STRICTLY in ${selectedLang} language.`;
                 } else {
-                    langInstruction = `Respond naturally in the same language as the user's latest message or conversation context.`;
+                    langInstruction = `Respond naturally in the same language as the user's latest message.`;
                 }
 
                 const messagesForServer = [
                     {
                         role: 'system',
-                        content: `${langInstruction} Keep track of conversation context.`
+                        content: `${langInstruction}`
                     },
                     ...chatHistory,
                     { role: 'user', content: promptText }
@@ -411,14 +411,9 @@
                 return `<div class="code-block"><div class="code-header"><span>${(lang||'CODE').toUpperCase()}</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-content">${code}</div></div>`;
             });
 
-            // Markdown Links: [Title](URL)
             html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color:#818cf8;text-decoration:underline;">$1</a>');
-
-            // Bold & Italics
             html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-            // Line breaks
             html = html.replace(/\n/g, '<br>');
 
             return html;
