@@ -3,7 +3,7 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const { Groq } = require('groq-sdk');
-const { tavily } = require('@tavily/core');
+const { search } = require('duck-duck-scrape');
 const fetch = require('node-fetch');
 
 const app = express();
@@ -17,39 +17,38 @@ const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
 
-const tvl = tavily({ apiKey: process.env.TAVILY_API_KEY });
-
 // Cloudflare Credentials from Environment Variables
 const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
 const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 
+// DuckDuckGo Web Search Function
 async function performWebSearch(query) {
     try {
-        console.log(`🔍 Searching via Tavily for: "${query}"...`);
-        const response = await tvl.search(query, {
-            searchDepth: "basic",
-            maxResults: 4
+        console.log(`🔍 Searching via DuckDuckGo for: "${query}"...`);
+        const searchResults = await search(query, {
+            safeSearch: "MODERATE",
+            limit: 4
         });
         
-        if (!response || !response.results || response.results.length === 0) {
+        if (!searchResults || !searchResults.results || searchResults.results.length === 0) {
             return "No web results found.";
         }
 
         let formattedContext = "Real-time Verified Web Search Results:\n";
-        response.results.forEach((res, index) => {
-            formattedContext += `\n[Result ${index + 1}]\nTitle: ${res.title}\nContent: ${res.content}\nURL: ${res.url}\n`;
+        searchResults.results.forEach((res, index) => {
+            formattedContext += `\n[Result ${index + 1}]\nTitle: ${res.title}\nContent: ${res.description}\nURL: ${res.url}\n`;
         });
 
         return formattedContext;
     } catch (error) {
-        console.error("Tavily Search Error:", error.message);
+        console.error("DuckDuckGo Search Error:", error.message);
         return "Failed to fetch search results.";
     }
 }
 
 function shouldSearch(message) {
     const lowerMsg = message.toLowerCase().trim();
-    const greetings = ['hi', 'hello', 'hey', 'hi!', 'hello!', 'sup', 'salam', 'kemon acho', 'how are you', 'what', 'who made u', 'who are you'];
+    const greetings = ['hi', 'hello', 'hey', 'hi!', 'hello!', 'sup', 'salam', 'kemon acho', 'how are you', 'hru', 'what', 'who made u', 'who are you', 'who r u', 'who r u?'];
     
     if (greetings.includes(lowerMsg) || lowerMsg.split(' ').length < 2) {
         return false;
@@ -62,10 +61,11 @@ app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
         if (!prompt) {
-            return res.status(400).json({ error: "Prompt is required for image generation." });
+            return res.status(400).json({ success: false, error: "Prompt is required for image generation." });
         }
 
         if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN) {
+            console.error("❌ Cloudflare credentials missing!");
             return res.status(500).json({ success: false, error: "Cloudflare credentials are not set." });
         }
 
@@ -85,6 +85,7 @@ app.post('/api/generate-image', async (req, res) => {
 
         if (!response.ok) {
             const errText = await response.text();
+            console.error("❌ Cloudflare API Error Response:", errText);
             throw new Error(`Cloudflare API Error: ${errText}`);
         }
 
@@ -93,10 +94,11 @@ app.post('/api/generate-image', async (req, res) => {
         const base64Image = buffer.toString('base64');
         const imageUrl = `data:image/jpeg;base64,${base64Image}`;
 
+        console.log("✅ Image generated successfully!");
         res.json({ success: true, imageUrl: imageUrl });
 
     } catch (error) {
-        console.error("Image Generation Error:", error.message);
+        console.error("❌ Image Generation Server Error:", error.message);
         res.status(500).json({ success: false, error: error.message || "Failed to generate image" });
     }
 });
@@ -111,26 +113,28 @@ app.post('/api/chat', async (req, res) => {
 
         let updatedMessages = [...messages];
         const lastUserMessage = messages[messages.length - 1]?.content || "";
-        
+
+        const systemIdentityPrompt = `You are Capella AI, an intelligent AI assistant created and owned by Shadman Wasif Faruque (born October 9, 2014, Pabna, Bangladesh).
+You are NOT ChatGPT and NOT created by OpenAI.
+
+Only when asked about your owner/creator or Shadman Wasif Faruque, mention that you were created by him and provide his portfolio link: [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/).
+For general chatter (like "hi", "how are you", "hru"), respond naturally and friendly WITHOUT repeating your owner's link unless asked!`;
+
         if (enableSearch && lastUserMessage.length > 0 && shouldSearch(lastUserMessage)) {
             const searchData = await performWebSearch(lastUserMessage);
             
             updatedMessages.unshift({
                 role: "system",
-                content: `You are Capella AI, developed by Shadman Wasif Faruque. Whenever anyone asks about Shadman Wasif Faruque, his personal information, bio, or details about your owner/creator, always include his official portfolio website link using the exact anchor text [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/).
-
-CRITICAL INSTRUCTION: Real-time search data is provided below. You MUST rely EXCLUSIVELY on this search data to answer factual questions. 
-
-${searchData}`
+                content: `${systemIdentityPrompt}\n\nSearch Results:\n${searchData}`
             });
         } else {
             updatedMessages.unshift({
                 role: "system",
-                content: `You are Capella AI, a friendly and intelligent assistant created, owned, and developed by Shadman Wasif Faruque. Whenever anyone asks about Shadman Wasif Faruque, his personal information, bio, or details about your owner/creator, always include his official portfolio website link using the exact anchor text [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/).`
+                content: systemIdentityPrompt
             });
         }
 
-        console.log("Sending request to Groq AI...");
+        console.log("🤖 Sending request to Groq AI...");
 
         const chatCompletion = await groq.chat.completions.create({
             messages: updatedMessages,
@@ -143,12 +147,11 @@ ${searchData}`
         res.json({ reply: reply });
 
     } catch (error) {
-        console.error("API Error:", error.message);
+        console.error("❌ API Error:", error.message);
         res.status(500).json({ error: error.message || "Server error occurred." });
     }
 });
 
 app.listen(port, () => {
     console.log(`🚀 Capella AI Backend is running on port ${port}`);
-    console.log(`🌐 Model: openai/gpt-oss-20b & Cloudflare Image Generation Enabled`);
 });
