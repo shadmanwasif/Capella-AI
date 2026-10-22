@@ -1,17 +1,17 @@
 {
-  "name": "capella-ai-backend",
+  "name": "capella-ai",
   "version": "1.0.0",
+  "description": "Capella AI Assistant",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "@tavily/core": "^0.7.13",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "duckduckgo-search-api": "^1.0.5",
+    "duck-duck-scrape": "^2.2.5",
     "express": "^4.19.2",
-    "groq-sdk": "^1.6.0",
+    "groq-sdk": "^0.3.3",
     "node-fetch": "^2.7.0"
   }
 }
