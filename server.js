@@ -54,12 +54,10 @@ function shouldSearch(message) {
     return true;
 }
 
-// Serve main web application
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Image Generation Endpoint
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
@@ -106,7 +104,6 @@ app.post('/api/generate-image', async (req, res) => {
     }
 });
 
-// Chat Endpoint
 app.post('/api/chat', async (req, res) => {
     try {
         const { messages, enableSearch } = req.body;
@@ -118,12 +115,12 @@ app.post('/api/chat', async (req, res) => {
         let updatedMessages = [...messages];
         const lastUserMessage = messages[messages.length - 1]?.content || "";
 
-        const systemIdentityPrompt = `CRITICAL IDENTITY RULE: 
-You are Capella AI, an independent AI assistant created, owned, and developed by Shadman Wasif Faruque (born October 9, 2014, in Pabna, Bangladesh). 
-You are NOT ChatGPT. You are NOT created by OpenAI. You MUST NEVER say you are ChatGPT or built by OpenAI.
-
-If asked "who are you" or "tumi ke", ALWAYS answer that you are Capella AI created and owned by Shadman Wasif Faruque.
-Whenever mentioning Shadman Wasif Faruque, provide his portfolio link: [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/).`;
+        const systemIdentityPrompt = `You are Capella AI, an intelligent, helpful, and natural AI assistant.
+CRITICAL RULES:
+1. NEVER spam about your creator unless the user explicitly asks about who made you, who is your owner, or mentions Shadman Wasif Faruque.
+2. For normal greetings, casual chat, coding, or problem-solving, behave naturally and friendly without mentioning any creator links or names.
+3. If someone asks who created you or asks about your owner, only then state that you were created by Shadman Wasif Faruque and provide his portfolio link: [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/).
+4. Remember previous conversation context carefully and maintain smooth continuity.`;
 
         if (enableSearch && lastUserMessage.length > 0 && shouldSearch(lastUserMessage)) {
             const searchData = await performWebSearch(lastUserMessage);
@@ -144,16 +141,15 @@ Whenever mentioning Shadman Wasif Faruque, provide his portfolio link: [Shadman 
         const chatCompletion = await groq.chat.completions.create({
             messages: updatedMessages,
             model: "openai/gpt-oss-20b",
-            temperature: 0.2,
+            temperature: 0.5,
             max_tokens: 2048,
         });
 
         let reply = chatCompletion.choices[0]?.message?.content || "";
 
-        // HARD OVERRIDE FIX: Auto replace ChatGPT or OpenAI if model mistakenly outputs them
+        // Fallback safety check to prevent accidental openAI / chatgpt leaks
         reply = reply.replace(/ChatGPT/gi, "Capella AI");
         reply = reply.replace(/OpenAI/gi, "Shadman Wasif Faruque");
-        reply = reply.replace(/একটি কৃত্রিম বুদ্ধিমত্তা ভাষা মডেল, যা Shadman Wasif Faruque দ্বারা তৈরি।/gi, "একটি কৃত্রিম বুদ্ধিমত্তা সহকারী, যা Shadman Wasif Faruque তৈরি করেছেন।");
 
         res.json({ reply: reply });
 
