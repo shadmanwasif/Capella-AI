@@ -25,7 +25,7 @@ async function performWebSearch(query) {
         console.log(`🔍 Searching via DuckDuckGo for: "${query}"...`);
         const searchResults = await search(query, {
             safeSearch: "MODERATE",
-            limit: 4
+            limit: 5
         });
         
         if (!searchResults || !searchResults.results || searchResults.results.length === 0) {
@@ -44,14 +44,11 @@ async function performWebSearch(query) {
     }
 }
 
-function shouldSearch(message) {
-    const lowerMsg = message.toLowerCase().trim();
-    const greetings = ['hi', 'hello', 'hey', 'hi!', 'hello!', 'sup', 'salam', 'kemon acho', 'how are you', 'hru', 'what', 'who made u', 'who are you', 'who r u', 'who r u?'];
-    
-    if (greetings.includes(lowerMsg) || lowerMsg.split(' ').length < 2) {
-        return false;
-    }
-    return true;
+function shouldForceSearch(message, modelType) {
+    if (modelType === 'deep-research') return true; // Deep Research always searches
+    const lower = message.toLowerCase();
+    const searchKeywords = ['who is', 'what is', 'latest', 'news', 'search', 'find', 'weather', 'price', 'tumi ki', 'ke e', 'kake bole', 'janis', 'jano ki', 'biography', 'khuje'];
+    return searchKeywords.some(kw => lower.includes(kw));
 }
 
 app.get('/', (req, res) => {
@@ -64,13 +61,6 @@ app.post('/api/generate-image', async (req, res) => {
         if (!prompt) {
             return res.status(400).json({ success: false, error: "Prompt is required for image generation." });
         }
-
-        if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN) {
-            console.error("❌ Cloudflare credentials missing!");
-            return res.status(500).json({ success: false, error: "Cloudflare credentials are not set." });
-        }
-
-        console.log(`🎨 Generating image via Cloudflare Workers AI for prompt: "${prompt}"...`);
 
         const response = await fetch(
             `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID.trim()}/ai/run/@cf/black-forest-labs/flux-1-schnell`,
@@ -85,49 +75,46 @@ app.post('/api/generate-image', async (req, res) => {
         );
 
         if (!response.ok) {
-            const errText = await response.text();
-            console.error("❌ Cloudflare API Error Response:", errText);
-            throw new Error(`Cloudflare API Error: ${errText}`);
+            throw new Error(`Cloudflare API Error`);
         }
 
         const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const base64Image = buffer.toString('base64');
-        const imageUrl = `data:image/jpeg;base64,${base64Image}`;
-
-        console.log("✅ Image generated successfully!");
-        res.json({ success: true, imageUrl: imageUrl });
+        const base64Image = Buffer.from(arrayBuffer).toString('base64');
+        res.json({ success: true, imageUrl: `data:image/jpeg;base64,${base64Image}` });
 
     } catch (error) {
-        console.error("❌ Image Generation Server Error:", error.message);
-        res.status(500).json({ success: false, error: error.message || "Failed to generate image" });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
 app.post('/api/chat', async (req, res) => {
     try {
-        const { messages, enableSearch } = req.body;
-
-        if (!messages || !Array.isArray(messages)) {
-            return res.status(400).json({ error: "Invalid messages format" });
-        }
+        const { messages, modelType, enableSearch } = req.body;
 
         let updatedMessages = [...messages];
         const lastUserMessage = messages[messages.length - 1]?.content || "";
 
-        const systemIdentityPrompt = `You are Capella AI, an intelligent, helpful, and natural AI assistant.
-CRITICAL RULES:
-1. NEVER spam about your creator unless the user explicitly asks about who made you, who is your owner, or mentions Shadman Wasif Faruque.
-2. For normal greetings, casual chat, coding, or problem-solving, behave naturally and friendly without mentioning any creator links or names.
-3. If someone asks who created you or asks about your owner, only then state that you were created by Shadman Wasif Faruque and provide his portfolio link: [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/).
-4. Remember previous conversation context carefully and maintain smooth continuity.`;
+        let systemIdentityPrompt = `You are Capella AI, an intelligent, advanced, and helpful AI assistant created and owned by Shadman Wasif Faruque (born October 9, 2014, Pabna, Bangladesh). 
+- NEVER spam about your creator unless explicitly asked. 
+- If asked who you are, state you are Capella AI created by Shadman Wasif Faruque.
+- Use provided real-time web search results to give accurate, detailed, and deep factual answers.`;
 
-        if (enableSearch && lastUserMessage.length > 0 && shouldSearch(lastUserMessage)) {
-            const searchData = await performWebSearch(lastUserMessage);
-            
+        if (modelType === 'deep-research') {
+            systemIdentityPrompt += `\nMODE: DEEP RESEARCH. Perform thorough analysis, multi-step logical breakdown, and structure your output comprehensively with detailed sections.`;
+        }
+
+        let isSearching = false;
+        let searchData = "";
+
+        if (enableSearch || shouldForceSearch(lastUserMessage, modelType)) {
+            isSearching = true;
+            searchData = await performWebSearch(lastUserMessage);
+        }
+
+        if (searchData) {
             updatedMessages.unshift({
                 role: "system",
-                content: `${systemIdentityPrompt}\n\nSearch Results:\n${searchData}`
+                content: `${systemIdentityPrompt}\n\nLive Web Search Results:\n${searchData}`
             });
         } else {
             updatedMessages.unshift({
@@ -136,29 +123,36 @@ CRITICAL RULES:
             });
         }
 
-        console.log("🤖 Sending request to Groq AI...");
+        let selectedModel = "openai/gpt-oss-20b";
+        let maxTokens = 2048;
+        let temperature = 0.3;
+
+        if (modelType === 'deep-research') {
+            temperature = 0.2;
+            maxTokens = 4096;
+        } else if (modelType === 'simple') {
+            maxTokens = 1024;
+        }
 
         const chatCompletion = await groq.chat.completions.create({
             messages: updatedMessages,
-            model: "openai/gpt-oss-20b",
-            temperature: 0.5,
-            max_tokens: 2048,
+            model: selectedModel,
+            temperature: temperature,
+            max_tokens: maxTokens,
         });
 
         let reply = chatCompletion.choices[0]?.message?.content || "";
 
-        // Fallback safety check to prevent accidental openAI / chatgpt leaks
         reply = reply.replace(/ChatGPT/gi, "Capella AI");
         reply = reply.replace(/OpenAI/gi, "Shadman Wasif Faruque");
 
-        res.json({ reply: reply });
+        res.json({ reply: reply, searched: isSearching });
 
     } catch (error) {
-        console.error("❌ API Error:", error.message);
         res.status(500).json({ error: error.message || "Server error occurred." });
     }
 });
 
 app.listen(port, () => {
-    console.log(`🚀 Capella AI Backend is running on port ${port}`);
+    console.log(`🚀 Capella AI Backend running on port ${port}`);
 });
