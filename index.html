@@ -1,571 +1,161 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+require('dotenv').config();
+const express = require('express');
+const path = require('path');
+const cors = require('cors');
+const { Groq } = require('groq-sdk');
+const { search } = require('duck-duck-scrape');
+const fetch = require('node-fetch');
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname)));
+
+const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY
+});
+
+const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
+const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+
+async function performWebSearch(query) {
+    try {
+        console.log(`🔍 Searching via DuckDuckGo for: "${query}"...`);
+        const searchResults = await search(query, {
+            safeSearch: "MODERATE",
+            limit: 4
+        });
+        
+        if (!searchResults || !searchResults.results || searchResults.results.length === 0) {
+            return "No web results found.";
+        }
+
+        let formattedContext = "Real-time Verified Web Search Results:\n";
+        searchResults.results.forEach((res, index) => {
+            formattedContext += `\n[Result ${index + 1}]\nTitle: ${res.title}\nContent: ${res.description}\nURL: ${res.url}\n`;
+        });
+
+        return formattedContext;
+    } catch (error) {
+        console.error("DuckDuckGo Search Error:", error.message);
+        return "Failed to fetch search results.";
+    }
+}
+
+function shouldSearch(message) {
+    const lowerMsg = message.toLowerCase().trim();
+    const greetings = ['hi', 'hello', 'hey', 'hi!', 'hello!', 'sup', 'salam', 'kemon acho', 'how are you', 'hru', 'what', 'who made u', 'who are you', 'who r u', 'who r u?'];
     
-    <!-- SEO Meta Tags -->
-    <title>Capella AI - Intelligent Assistant | Owner Shadman Wasif Faruque</title>
-    <meta name="description" content="Capella AI is an intelligent assistant created and owned by Shadman Wasif Faruque.">
-    <meta name="keywords" content="Capella AI, Shadman Wasif Faruque, AI assistant, owner Shadman Wasif Faruque">
-    <meta name="author" content="Shadman Wasif Faruque">
+    if (greetings.includes(lowerMsg) || lowerMsg.split(' ').length < 2) {
+        return false;
+    }
+    return true;
+}
 
-    <link rel="icon" type="image/png" href="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png">
-
-    <style>
-        :root {
-            --bg-color: #0d0f12;
-            --text-color: #f0f3f8;
-            --header-bg: rgba(18, 20, 26, 0.9);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --sidebar-bg: #12141a;
-            --msg-capella: #181b22;
-            --input-bg: #161820;
-            --code-bg: #0d0e12;
+app.post('/api/generate-image', async (req, res) => {
+    try {
+        const { prompt } = req.body;
+        if (!prompt) {
+            return res.status(400).json({ success: false, error: "Prompt is required for image generation." });
         }
 
-        body.light-mode {
-            --bg-color: #f4f6f9;
-            --text-color: #1e293b;
-            --header-bg: rgba(255, 255, 255, 0.9);
-            --border-color: rgba(0, 0, 0, 0.08);
-            --sidebar-bg: #ffffff;
-            --msg-capella: #ffffff;
-            --input-bg: #e2e8f0;
-            --code-bg: #1e293b;
+        if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN) {
+            console.error("❌ Cloudflare credentials missing!");
+            return res.status(500).json({ success: false, error: "Cloudflare credentials are not set." });
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-color); height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+        console.log(`🎨 Generating image via Cloudflare Workers AI for prompt: "${prompt}"...`);
 
-        .splash-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #07080a; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; z-index: 9999; transition: opacity 0.5s ease, visibility 0.5s ease; }
-        .splash-screen.hide { opacity: 0; visibility: hidden; }
-        .splash-logo { width: 80px; height: 80px; border-radius: 20%; object-fit: cover; animation: pulse 2s infinite ease-in-out; }
-        .splash-title { font-size: 2.2rem; font-weight: 700; background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-        @keyframes pulse { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.4)); } 50% { transform: scale(1.08); filter: drop-shadow(0 0 25px rgba(168, 85, 247, 0.7)); } }
-
-        .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--header-bg); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); z-index: 10; flex-shrink: 0; }
-        .header-left, .header-right { display: flex; align-items: center; gap: 10px; }
-        .brand-box { display: flex; align-items: center; gap: 8px; }
-        .app-logo { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
-        .app-title { font-size: 1.2rem; font-weight: 700; background: linear-gradient(135deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-        .icon-btn { background: none; border: none; color: inherit; font-size: 1.2rem; cursor: pointer; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-        .icon-btn:hover { background-color: rgba(128, 128, 128, 0.15); }
-
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 999; display: none; }
-        .overlay.active { display: block; }
-
-        .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background-color: var(--sidebar-bg); border-right: 1px solid var(--border-color); z-index: 1000; transition: left 0.3s ease; display: flex; flex-direction: column; }
-        .sidebar.open { left: 0; }
-        .sidebar-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
-        .sidebar-content { flex: 1; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; }
-        .new-chat-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
-
-        .settings-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); width: 90%; max-width: 400px; background-color: var(--sidebar-bg); border: 1px solid var(--border-color); border-radius: 16px; z-index: 2000; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; opacity: 0; transition: all 0.3s ease; }
-        .settings-panel.active { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        .settings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
-        .setting-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 0.95rem; }
-        .setting-item select, .setting-item input[type="checkbox"] { padding: 6px; border-radius: 6px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); }
-
-        .chat-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
-        .message-wrapper { display: flex; flex-direction: column; max-width: 88%; position: relative; }
-        .user-wrapper { align-self: flex-end; }
-        .capella-wrapper { align-self: flex-start; }
-
-        .message-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; width: 100%; }
-        .message-header-left { display: flex; align-items: center; gap: 6px; }
-        .sender-icon { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
-        .sender-name { font-size: 0.78rem; color: #94a3b8; font-weight: 500; }
-
-        .message-box-outer { position: relative; display: inline-block; }
-        .message { padding: 12px 16px; border-radius: 16px; line-height: 1.5; font-size: 0.92rem; word-wrap: break-word; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); cursor: pointer; position: relative; }
-        .user-msg { background: linear-gradient(135deg, #312e81, #1e1b4b); color: #f1f5f9; border-bottom-right-radius: 4px; border: 1px solid rgba(99, 102, 241, 0.3); }
-        .capella-msg { background-color: var(--msg-capella); color: var(--text-color); border-bottom-left-radius: 4px; border: 1px solid var(--border-color); }
-
-        .copy-tooltip { position: absolute; top: -32px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 10; border: 1px solid rgba(255,255,255,0.1); }
-        .copy-tooltip.show { opacity: 1; }
-
-        .img-container { position: relative; display: inline-block; margin-top: 8px; }
-        .msg-image { max-width: 100%; max-height: 320px; border-radius: 12px; display: block; border: 1px solid rgba(255,255,255,0.1); margin-top: 8px; }
-        .download-img-btn { margin-top: 10px; background: rgba(99, 102, 241, 0.9); color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s; }
-        .download-img-btn:hover { background: rgba(79, 70, 229, 1); }
-
-        .code-block { background-color: var(--code-bg); border: 1px solid var(--border-color); border-radius: 8px; margin: 10px 0; overflow: hidden; }
-        .code-header { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background-color: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border-color); font-size: 0.72rem; color: #818cf8; font-weight: 600; }
-        .code-copy-btn { background: rgba(255, 255, 255, 0.1); border: none; color: #cbd5e1; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
-        .code-content { padding: 12px; font-family: 'Fira Code', monospace; white-space: pre-wrap; overflow-x: auto; font-size: 0.82rem; color: #e2e8f0; }
-
-        .input-container { padding: 10px 12px; background: var(--header-bg); backdrop-filter: blur(12px); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
-        .preview-wrapper { display: none; position: relative; align-self: flex-start; }
-        .preview-wrapper.active { display: block; }
-        .img-preview { height: 55px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); }
-        .remove-img-btn { position: absolute; top: -6px; right: -6px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; cursor: pointer; }
-
-        .input-box { display: flex; align-items: center; gap: 8px; background-color: var(--input-bg); border-radius: 20px; padding: 6px 12px; border: 1px solid var(--border-color); }
-        .input-box textarea { flex: 1; background: none; border: none; color: var(--text-color); resize: none; max-height: 120px; outline: none; font-size: 0.92rem; padding: 4px 0; }
-
-        .send-btn { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; padding: 8px 14px; border-radius: 16px; cursor: pointer; font-weight: 600; font-size: 0.82rem; flex-shrink: 0; }
-        .send-btn.stop-mode { background: #ef4444; }
-
-        .thinking-indicator { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
-        .blue-dot-pulse { width: 8px; height: 8px; background-color: #818cf8; border-radius: 50%; animation: dotPulse 1.2s infinite ease-in-out; }
-        @keyframes dotPulse { 0%, 100% { transform: scale(0.8); opacity: 0.4; } 50% { transform: scale(1.3); opacity: 1; } }
-    </style>
-</head>
-<body>
-
-    <!-- Splash Screen -->
-    <div class="splash-screen" id="splashScreen">
-        <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" alt="Capella Logo" class="splash-logo">
-        <div class="splash-title">Capella AI</div>
-    </div>
-
-    <!-- Header -->
-    <div class="header">
-        <div class="header-left">
-            <button class="icon-btn" id="menuBtn">☰</button>
-            <div class="brand-box">
-                <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="app-logo">
-                <div class="app-title">Capella</div>
-            </div>
-        </div>
-        <div class="header-right">
-            <button class="icon-btn" id="settingsBtn">⚙️</button>
-        </div>
-    </div>
-
-    <div class="overlay" id="overlay"></div>
-
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="brand-box">
-                <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="app-logo">
-                <span style="font-weight: 600;">Menu</span>
-            </div>
-            <button class="icon-btn" id="closeBtn">✕</button>
-        </div>
-        <div class="sidebar-content">
-            <div>
-                <button class="new-chat-btn" id="newChatBtn">➕ New Chat</button>
-            </div>
-            <div style="padding-top: 15px; border-top: 1px solid var(--border-color); font-size: 13px; color: #94a3b8; text-align: center;">
-                <p style="margin-bottom: 5px;">Owner & Developer</p>
-                <a href="https://shadmanwasif.github.io/Shadman-Wasif-Faruque/" target="_blank" style="color: #818cf8; text-decoration: none; font-weight: 600;">
-                    Shadman web
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Settings Panel -->
-    <div class="settings-panel" id="settingsPanel">
-        <div class="settings-header">
-            <span style="font-weight: 700; font-size: 1.1rem;">Settings</span>
-            <button class="icon-btn" id="closeSettingsBtn">✕</button>
-        </div>
-        <div class="setting-item">
-            <span>Theme Mode</span>
-            <select id="themeSelect">
-                <option value="dark">Dark Mode</option>
-                <option value="light">Light Mode</option>
-            </select>
-        </div>
-        <div class="setting-item">
-            <span>Live Web Search</span>
-            <input type="checkbox" id="searchToggle" checked>
-        </div>
-        <div class="setting-item">
-            <span>Thinking Mode</span>
-            <input type="checkbox" id="thinkingToggle" checked>
-        </div>
-        <div class="setting-item">
-            <span>Main Language</span>
-            <select id="langSelect">
-                <option value="auto" selected>Auto Detect</option>
-                <option value="English">English</option>
-                <option value="Bengali">Bengali (বাংলা)</option>
-                <option value="Spanish">Spanish (Español)</option>
-                <option value="Hindi">Hindi (हिंदी)</option>
-                <option value="Arabic">Arabic (العربية)</option>
-                <option value="French">French (Français)</option>
-                <option value="German">German (Deutsch)</option>
-                <option value="Chinese">Chinese (中文)</option>
-                <option value="Japanese">Japanese (日本語)</option>
-                <option value="Urdu">Urdu (اردو)</option>
-            </select>
-        </div>
-    </div>
-
-    <!-- Chat Container -->
-    <div class="chat-container" id="chatContainer">
-        <div class="message-wrapper capella-wrapper">
-            <div class="message-header">
-                <div class="message-header-left">
-                    <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="sender-icon">
-                    <span class="sender-name">Capella</span>
-                </div>
-            </div>
-            <div class="message-box-outer">
-                <div class="copy-tooltip">Copied!</div>
-                <div class="message capella-msg" onclick="copyMessageText(this)">
-                    <div class="msg-text">Hi, I am Capella AI created by Shadman Wasif Faruque! How can I help you today? 😊</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Input Bar -->
-    <div class="input-container">
-        <div class="preview-wrapper" id="previewWrapper">
-            <img src="" id="imgPreview" class="img-preview">
-            <button class="remove-img-btn" id="removeImgBtn">✕</button>
-        </div>
-        <div class="input-box">
-            <button class="icon-btn" id="uploadBtn">📷</button>
-            <input type="file" id="fileInput" accept="image/*" style="display: none;">
-            <textarea id="userInput" rows="1" placeholder="Ask Capella anything..."></textarea>
-            <button class="send-btn" id="sendBtn">Send</button>
-        </div>
-    </div>
-
-    <script>
-        let isGenerating = false;
-        let abortController = null;
-        let chatHistory = [];
-        let userScrolledUp = false;
-
-        const chatContainer = document.getElementById('chatContainer');
-        const settingsBtn = document.getElementById('settingsBtn');
-        const settingsPanel = document.getElementById('settingsPanel');
-        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-        const themeSelect = document.getElementById('themeSelect');
-        const searchToggle = document.getElementById('searchToggle');
-        const thinkingToggle = document.getElementById('thinkingToggle');
-        const langSelect = document.getElementById('langSelect');
-        const newChatBtn = document.getElementById('newChatBtn');
-
-        const splashScreen = document.getElementById('splashScreen');
-        const menuBtn = document.getElementById('menuBtn');
-        const sidebar = document.getElementById('sidebar');
-        const closeBtn = document.getElementById('closeBtn');
-        const overlay = document.getElementById('overlay');
-        const sendBtn = document.getElementById('sendBtn');
-        const userInput = document.getElementById('userInput');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const fileInput = document.getElementById('fileInput');
-        const previewWrapper = document.getElementById('previewWrapper');
-        const imgPreview = document.getElementById('imgPreview');
-        let selectedImageData = null;
-
-        // Auto Scroll
-        chatContainer.addEventListener('scroll', () => {
-            const threshold = 60;
-            const currentScroll = chatContainer.scrollTop + chatContainer.clientHeight;
-            const maxScroll = chatContainer.scrollHeight;
-            userScrolledUp = (maxScroll - currentScroll > threshold);
-        });
-
-        // Event Listeners for UI & Settings
-        settingsBtn.addEventListener('click', () => { settingsPanel.classList.add('active'); overlay.classList.add('active'); });
-        closeSettingsBtn.addEventListener('click', () => { settingsPanel.classList.remove('active'); overlay.classList.remove('active'); });
-
-        newChatBtn.addEventListener('click', () => {
-            chatContainer.innerHTML = `
-                <div class="message-wrapper capella-wrapper">
-                    <div class="message-header">
-                        <div class="message-header-left">
-                            <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="sender-icon">
-                            <span class="sender-name">Capella</span>
-                        </div>
-                    </div>
-                    <div class="message-box-outer">
-                        <div class="copy-tooltip">Copied!</div>
-                        <div class="message capella-msg" onclick="copyMessageText(this)">
-                            <div class="msg-text">Hi, I am Capella AI created by Shadman Wasif Faruque! How can I help you today? 😊</div>
-                        </div>
-                    </div>
-                </div>`;
-            chatHistory = [];
-            sidebar.classList.remove('open');
-            overlay.classList.remove('active');
-        });
-
-        themeSelect.addEventListener('change', (e) => {
-            document.body.classList.toggle('light-mode', e.target.value === 'light');
-        });
-
-        window.addEventListener('load', () => setTimeout(() => splashScreen.classList.add('hide'), 1200));
-        menuBtn.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('active'); });
-        closeBtn.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); });
-        overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); settingsPanel.classList.remove('active'); });
-
-        userInput.addEventListener('input', () => {
-            userInput.style.height = 'auto';
-            userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
-        });
-
-        uploadBtn.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    selectedImageData = event.target.result;
-                    imgPreview.src = selectedImageData;
-                    previewWrapper.classList.add('active');
-                };
-                reader.readAsDataURL(file);
+        const response = await fetch(
+            `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID.trim()}/ai/run/@cf/black-forest-labs/flux-1-schnell`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN.trim()}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ prompt: prompt })
             }
-        });
+        );
 
-        document.getElementById('removeImgBtn').addEventListener('click', () => {
-            selectedImageData = null; fileInput.value = ''; previewWrapper.classList.remove('active');
-        });
-
-        function isImageGenerationRequest(text) {
-            const lower = text.toLowerCase();
-            const keywords = ['generate image', 'create image', 'draw', 'picture of', 'pic make', 'make a pic', 'image of', 'ছবি তৈরি', 'ছবি আঁক', 'ছবি বানিয়ে দাও', 'ছবি বানাও', 'একটি ছবি', 'foto de', 'bild von', 'pic'];
-            return keywords.some(kw => lower.includes(kw));
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error("❌ Cloudflare API Error Response:", errText);
+            throw new Error(`Cloudflare API Error: ${errText}`);
         }
 
-        async function fetchResponse(promptText) {
-            abortController = new AbortController();
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const base64Image = buffer.toString('base64');
+        const imageUrl = `data:image/jpeg;base64,${base64Image}`;
+
+        console.log("✅ Image generated successfully!");
+        res.json({ success: true, imageUrl: imageUrl });
+
+    } catch (error) {
+        console.error("❌ Image Generation Server Error:", error.message);
+        res.status(500).json({ success: false, error: error.message || "Failed to generate image" });
+    }
+});
+
+app.post('/api/chat', async (req, res) => {
+    try {
+        const { messages, enableSearch } = req.body;
+
+        if (!messages || !Array.isArray(messages)) {
+            return res.status(400).json({ error: "Invalid messages format" });
+        }
+
+        let updatedMessages = [...messages];
+        const lastUserMessage = messages[messages.length - 1]?.content || "";
+
+        const systemIdentityPrompt = `CRITICAL IDENTITY RULE: 
+You are Capella AI, an independent AI assistant created, owned, and developed by Shadman Wasif Faruque (born October 9, 2014, in Pabna, Bangladesh). 
+You are NOT ChatGPT. You are NOT created by OpenAI. You MUST NEVER say you are ChatGPT or built by OpenAI.
+
+If asked "who are you" or "tumi ke", ALWAYS answer that you are Capella AI created and owned by Shadman Wasif Faruque.
+Whenever mentioning Shadman Wasif Faruque, provide his portfolio link: [Shadman web](https://shadmanwasif.github.io/Shadman-Wasif-Faruque/).`;
+
+        if (enableSearch && lastUserMessage.length > 0 && shouldSearch(lastUserMessage)) {
+            const searchData = await performWebSearch(lastUserMessage);
             
-            if (isImageGenerationRequest(promptText)) {
-                const cleanPrompt = promptText.replace(/(generate image|create image|picture of|ছবি বানাও|ছবি তৈরি|একটি ছবি|draw|make a pic|pic of|make a pic of)/gi, '').trim();
-                
-                try {
-                    const imgRes = await fetch('/api/generate-image', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt: cleanPrompt || promptText }),
-                        signal: abortController.signal
-                    });
-                    
-                    const imgData = await imgRes.json();
-                    if (!imgRes.ok || !imgData.success) {
-                        return { type: 'text', text: `⚠️ Image Generation Error: ${imgData.error || 'Failed to generate'}` };
-                    }
-
-                    const imageUrl = imgData.imageUrl;
-                    return { 
-                        type: 'image', 
-                        text: `<div class="img-container"><img src="${imageUrl}" class="msg-image" alt="Generated Image"><br><a href="${imageUrl}" download="capella_image.jpg" target="_blank" class="download-img-btn">⬇ Download Image</a></div>` 
-                    };
-                } catch (err) {
-                    if (err.name === 'AbortError') return null;
-                    return { type: 'text', text: `⚠️ Image Generation Failed: ${err.message}` };
-                }
-            }
-
-            try {
-                const selectedLang = langSelect.value;
-                let langInstruction = "";
-                if (selectedLang !== "auto") {
-                    langInstruction = `Respond STRICTLY in ${selectedLang} language.`;
-                } else {
-                    langInstruction = `Respond naturally in the same language as the user's latest message.`;
-                }
-
-                const messagesForServer = [
-                    {
-                        role: 'system',
-                        content: `${langInstruction}`
-                    },
-                    ...chatHistory,
-                    { role: 'user', content: promptText }
-                ];
-
-                const res = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        messages: messagesForServer,
-                        enableSearch: searchToggle.checked 
-                    }),
-                    signal: abortController.signal
-                });
-
-                const data = await res.json();
-                if (!res.ok) return { type: 'text', text: `⚠️ API Error: ${data.error || 'Server issue'}` };
-
-                return { type: 'text', text: data.reply || "No response content received." };
-            } catch(e) {
-                if (e.name === 'AbortError') return null;
-                return { type: 'text', text: "⚠️ Connection Error: Please ensure your backend server is running." };
-            }
-        }
-
-        function renderMessageContent(text) {
-            if (!text) return '';
-            if (text.includes('img-container')) {
-                return text;
-            }
-
-            let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            
-            html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
-                return `<div class="code-block"><div class="code-header"><span>${(lang||'CODE').toUpperCase()}</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div><div class="code-content">${code}</div></div>`;
+            updatedMessages.unshift({
+                role: "system",
+                content: `${systemIdentityPrompt}\n\nSearch Results:\n${searchData}`
             });
-
-            html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color:#818cf8;text-decoration:underline;">$1</a>');
-            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-            html = html.replace(/\n/g, '<br>');
-
-            return html;
-        }
-
-        function copyMessageText(element) {
-            const textToCopy = element.innerText || element.textContent;
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                const tooltip = element.parentElement.querySelector('.copy-tooltip');
-                if (tooltip) {
-                    tooltip.classList.add('show');
-                    setTimeout(() => tooltip.classList.remove('show'), 2000);
-                }
+        } else {
+            updatedMessages.unshift({
+                role: "system",
+                content: systemIdentityPrompt
             });
         }
 
-        function copyCode(button) {
-            const codeBlock = button.parentElement.nextElementSibling;
-            const codeText = codeBlock.innerText;
-            navigator.clipboard.writeText(codeText).then(() => {
-                const originalText = button.innerText;
-                button.innerText = 'Copied!';
-                setTimeout(() => button.innerText = originalText, 2000);
-            });
-        }
+        console.log("🤖 Sending request to Groq AI...");
 
-        function appendUserMessage(text, imageData) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'message-wrapper user-wrapper';
-            
-            let imgHTML = imageData ? `<br><img src="${imageData}" class="msg-image">` : '';
-            
-            wrapper.innerHTML = `
-                <div class="message-box-outer">
-                    <div class="copy-tooltip">Copied!</div>
-                    <div class="message user-msg" onclick="copyMessageText(this)">
-                        <div class="msg-text">${renderMessageContent(text)}${imgHTML}</div>
-                    </div>
-                </div>`;
-            chatContainer.appendChild(wrapper);
-            if (!userScrolledUp) chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        function appendBotThinking() {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'message-wrapper capella-wrapper';
-            wrapper.id = 'thinkingWrapper';
-            wrapper.innerHTML = `
-                <div class="message-header">
-                    <div class="message-header-left">
-                        <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="sender-icon">
-                        <span class="sender-name">Capella</span>
-                    </div>
-                </div>
-                <div class="message-box-outer">
-                    <div class="message capella-msg">
-                        <div class="thinking-indicator">
-                            <div class="blue-dot-pulse"></div>
-                            <span style="font-size:0.85rem; color:#94a3b8;">Capella is thinking...</span>
-                        </div>
-                    </div>
-                </div>`;
-            chatContainer.appendChild(wrapper);
-            if (!userScrolledUp) chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        function removeBotThinking() {
-            const thinking = document.getElementById('thinkingWrapper');
-            if (thinking) thinking.remove();
-        }
-
-        function appendBotMessage(responseObj) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'message-wrapper capella-wrapper';
-            
-            const renderedContent = responseObj.type === 'image' 
-                ? responseObj.text 
-                : renderMessageContent(responseObj.text);
-
-            wrapper.innerHTML = `
-                <div class="message-header">
-                    <div class="message-header-left">
-                        <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="sender-icon">
-                        <span class="sender-name">Capella</span>
-                    </div>
-                </div>
-                <div class="message-box-outer">
-                    <div class="copy-tooltip">Copied!</div>
-                    <div class="message capella-msg">
-                        <div class="msg-text">${renderedContent}</div>
-                    </div>
-                </div>`;
-            chatContainer.appendChild(wrapper);
-            if (!userScrolledUp) chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        async function handleSendMessage() {
-            if (isGenerating) {
-                if (abortController) abortController.abort();
-                isGenerating = false;
-                sendBtn.innerText = 'Send';
-                sendBtn.classList.remove('stop-mode');
-                removeBotThinking();
-                return;
-            }
-
-            const text = userInput.value.trim();
-            if (!text && !selectedImageData) return;
-
-            const currentPrompt = text;
-            const currentImg = selectedImageData;
-
-            userInput.value = '';
-            userInput.style.height = 'auto';
-            selectedImageData = null;
-            fileInput.value = '';
-            previewWrapper.classList.remove('active');
-
-            appendUserMessage(currentPrompt, currentImg);
-            
-            chatHistory.push({ role: 'user', content: currentPrompt });
-
-            isGenerating = true;
-            sendBtn.innerText = 'Send';
-            sendBtn.classList.add('stop-mode');
-
-            if (thinkingToggle.checked) {
-                appendBotThinking();
-            }
-
-            const responseObj = await fetchResponse(currentPrompt);
-
-            removeBotThinking();
-            isGenerating = false;
-            sendBtn.innerText = 'Send';
-            sendBtn.classList.remove('stop-mode');
-
-            if (responseObj) {
-                appendBotMessage(responseObj);
-                if (responseObj.type === 'text') {
-                    chatHistory.push({ role: 'assistant', content: responseObj.text });
-                }
-            }
-        }
-
-        sendBtn.addEventListener('click', handleSendMessage);
-        userInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
-            }
+        const chatCompletion = await groq.chat.completions.create({
+            messages: updatedMessages,
+            model: "openai/gpt-oss-20b",
+            temperature: 0.2,
+            max_tokens: 2048,
         });
-    </script>
-</body>
-</html>
+
+        let reply = chatCompletion.choices[0]?.message?.content || "";
+
+        // HARD OVERRIDE FIX: Auto replace ChatGPT or OpenAI if model mistakenly outputs them
+        reply = reply.replace(/ChatGPT/gi, "Capella AI");
+        reply = reply.replace(/OpenAI/gi, "Shadman Wasif Faruque");
+        reply = reply.replace(/একটি কৃত্রিম বুদ্ধিমত্তা ভাষা মডেল, যা Shadman Wasif Faruque দ্বারা তৈরি।/gi, "একটি কৃত্রিম বুদ্ধিমত্তা সহকারী, যা Shadman Wasif Faruque তৈরি করেছেন।");
+
+        res.json({ reply: reply });
+
+    } catch (error) {
+        console.error("❌ API Error:", error.message);
+        res.status(500).json({ error: error.message || "Server error occurred." });
+    }
+});
+
+app.listen(port, () => {
+    console.log(`🚀 Capella AI Backend is running on port ${port}`);
+});
