@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
     <!-- SEO Meta Tags -->
-    <title>Capella AI</title>
+    <title>Capella AI - Advanced AI Assistant, Deep Research & Image Generator</title>
     <meta name="title" content="Capella AI - Advanced AI Assistant, Deep Research & Image Generator">
     <meta name="description" content="Capella AI by Shadman Wasif Faruque features Capella Simple, Pro, and Deep Research modes, live web search, instant image generation, and full support for 10 languages: English, Bengali, Spanish, Hindi, Arabic, French, German, Chinese, Japanese, and Urdu.">
     <meta name="keywords" content="Capella AI, Shadman Wasif Faruque, AI assistant, Capella Simple, Capella Pro, Capella Deep Research, live web search, image generator, English, Bengali, Spanish, Hindi, Arabic, French, German, Chinese, Japanese, Urdu, Pabna Bangladesh">
@@ -93,7 +93,10 @@
         .new-chat-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; margin-bottom: 12px; }
 
         .menu-list { display: flex; flex-direction: column; gap: 8px; }
-        .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--input-bg); border-radius: 8px; font-size: 0.9rem; border: 1px solid var(--border-color); }
+        .menu-item-btn { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--input-bg); border-radius: 8px; font-size: 0.9rem; border: 1px solid var(--border-color); color: var(--text-color); cursor: pointer; width: 100%; text-align: left; transition: all 0.2s; }
+        .menu-item-btn:hover { background: rgba(99, 102, 241, 0.15); border-color: #6366f1; }
+        .menu-item-btn.active-tab { border-color: #6366f1; background: rgba(99, 102, 241, 0.25); font-weight: 600; }
+        
         .badge-active { font-size: 0.75rem; background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; }
         .badge-pending { font-size: 0.72rem; background: #64748b; color: #cbd5e1; padding: 2px 6px; border-radius: 4px; }
 
@@ -156,7 +159,7 @@
             <button class="icon-btn" id="menuBtn">☰</button>
             <div class="brand-box">
                 <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="app-logo">
-                <div class="app-title">Capella</div>
+                <div class="app-title" id="appTitle">Capella Chat</div>
             </div>
         </div>
         <div class="header-right">
@@ -183,10 +186,18 @@
             <div>
                 <button class="new-chat-btn" id="newChatBtn">➕ New Chat</button>
                 <div class="menu-list">
-                    <div class="menu-item"><span>💬 Chatbot</span><span class="badge-active">Active</span></div>
-                    <div class="menu-item"><span>🎨 Image Generator</span><span class="badge-active">Active</span></div>
-                    <div class="menu-item"><span>🎥 Video Generator</span><span class="badge-pending">Didn't started yet</span></div>
-                    <div class="menu-item"><span>🎙️ Audio Talk</span><span class="badge-pending">Didn't started yet</span></div>
+                    <button class="menu-item-btn active-tab" data-mode="chat">
+                        <span>💬 Chatbot</span><span class="badge-active">Ready</span>
+                    </button>
+                    <button class="menu-item-btn" data-mode="image">
+                        <span>🎨 Image Generator</span><span class="badge-active">Ready</span>
+                    </button>
+                    <button class="menu-item-btn" data-mode="video">
+                        <span>🎥 Video Generator</span><span class="badge-pending">Soon</span>
+                    </button>
+                    <button class="menu-item-btn" data-mode="audio">
+                        <span>🎙️ Audio Talk</span><span class="badge-pending">Soon</span>
+                    </button>
                 </div>
             </div>
             <div style="font-size: 13px; color: #94a3b8; text-align: center; margin-top: 20px;">
@@ -215,8 +226,7 @@
         <div class="setting-item">
             <span>Main Language</span>
             <select id="langSelect">
-                <option value="auto" selected>Auto Detect</option>
-                <option value="English">English</option>
+                <option value="English" selected>English</option>
                 <option value="Bengali">Bengali (বাংলা)</option>
                 <option value="Spanish">Spanish (Español)</option>
                 <option value="Hindi">Hindi (हिंदी)</option>
@@ -230,20 +240,7 @@
         </div>
     </div>
 
-    <div class="chat-container" id="chatContainer">
-        <div class="message-wrapper capella-wrapper">
-            <div class="message-header">
-                <img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="sender-icon">
-                <span class="sender-name">Capella</span>
-            </div>
-            <div class="message-box-outer">
-                <div class="copy-tooltip">Copied!</div>
-                <div class="message capella-msg" onclick="copyMessageText(this)">
-                    Hi, I am Capella AI created by Shadman Wasif Faruque! How can I help you today? 😊
-                </div>
-            </div>
-        </div>
-    </div>
+    <div class="chat-container" id="chatContainer"></div>
 
     <div class="input-container">
         <div class="preview-wrapper" id="previewWrapper">
@@ -262,6 +259,21 @@
         let chatHistory = [];
         let isGenerating = false;
         let abortController = null;
+        let currentMode = 'chat'; // 'chat', 'image', 'video', 'audio'
+
+        // 10 Language Greetings Map
+        const greetingsMap = {
+            "English": "Hi, I am Capella AI created by Shadman Wasif Faruque! How can I help you today? 😊",
+            "Bengali": "হ্যালো! আমি শাদমান ওয়াসিফ ফারুক দ্বারা তৈরি ক্যাফেলা এআই। আজ আপনাকে কীভাবে সাহায্য করতে পারি? 😊",
+            "Spanish": "¡Hola! Soy Capella AI, creada por Shadman Wasif Faruque. ¿Cómo puedo ayudarte hoy? 😊",
+            "Hindi": "नमस्ते! मैं शादमान वासिफ फारूक द्वारा बनाया गया Capella AI हूँ। आज मैं आपकी क्या मदद कर सकता हूँ? 😊",
+            "Arabic": "مرحباً! أنا Capella AI تم إنشائي بواسطة شادمان واصف فاروق. كيف يمكنني مساعدتك اليوم؟ 😊",
+            "French": "Bonjour! Je suis Capella AI, créé par Shadman Wasif Faruque. Comment puis-je vous aider aujourd'hui? 😊",
+            "German": "Hallo! Ich bin Capella AI, entwickelt von Shadman Wasif Faruque. Wie kann ich Ihnen heute helfen? 😊",
+            "Chinese": "你好！我是由 Shadman Wasif Faruque 创建的 Capella AI。今天我能为您提供什么帮助？😊",
+            "Japanese": "こんにちは！Shadman Wasif Faruqueによって作成されたCapella AIです。今日はどのようなお手伝いができますか？😊",
+            "Urdu": "سلام! میں شادمان واصف فاروق کا بنایا ہوا Capella AI ہوں۔ آج میں آپ کی کیا مدد کر سکتا ہوں؟ 😊"
+        };
 
         const chatContainer = document.getElementById('chatContainer');
         const userInput = document.getElementById('userInput');
@@ -270,6 +282,7 @@
         const searchToggle = document.getElementById('searchToggle');
         const langSelect = document.getElementById('langSelect');
         const themeSelect = document.getElementById('themeSelect');
+        const appTitle = document.getElementById('appTitle');
 
         // Light mode default on, dark mode off
         document.body.classList.remove('dark-mode');
@@ -281,6 +294,50 @@
             } else {
                 document.body.classList.remove('dark-mode');
             }
+        });
+
+        langSelect.addEventListener('change', () => {
+            if (chatHistory.length === 0 && currentMode === 'chat') {
+                resetChatUI();
+            }
+        });
+
+        function getGreeting() {
+            const lang = langSelect.value;
+            return greetingsMap[lang] || greetingsMap["English"];
+        }
+
+        function resetChatUI() {
+            chatHistory = [];
+            chatContainer.innerHTML = '';
+            if (currentMode === 'chat') {
+                appendMessage('capella', getGreeting());
+            } else if (currentMode === 'image') {
+                appendMessage('capella', '🎨 **Image Generator Mode Active!**\nEnter a prompt below to generate an image.');
+            } else if (currentMode === 'video') {
+                appendMessage('capella', '🎥 **Video Generator Mode:** Coming soon!');
+            } else if (currentMode === 'audio') {
+                appendMessage('capella', '🎙️ **Audio Talk Mode:** Coming soon!');
+            }
+        }
+
+        // Sidebar Mode Switcher Buttons
+        document.querySelectorAll('.menu-item-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.menu-item-btn').forEach(b => b.classList.remove('active-tab'));
+                const targetBtn = e.currentTarget;
+                targetBtn.classList.add('active-tab');
+                currentMode = targetBtn.getAttribute('data-mode');
+
+                if (currentMode === 'chat') appTitle.innerText = 'Capella Chat';
+                else if (currentMode === 'image') appTitle.innerText = 'Capella Image Gen';
+                else if (currentMode === 'video') appTitle.innerText = 'Capella Video (Soon)';
+                else if (currentMode === 'audio') appTitle.innerText = 'Capella Audio (Soon)';
+
+                resetChatUI();
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('overlay').classList.remove('active');
+            });
         });
 
         document.getElementById('settingsBtn').addEventListener('click', () => {
@@ -306,8 +363,7 @@
         });
 
         document.getElementById('newChatBtn').addEventListener('click', () => {
-            chatContainer.innerHTML = `<div class="message-wrapper capella-wrapper"><div class="message-header"><img src="https://i.ibb.co.com/tVR2mBp/a98ff012-7af2-4721-86c9-7ce345972666.png" class="sender-icon"><span class="sender-name">Capella</span></div><div class="message-box-outer"><div class="copy-tooltip">Copied!</div><div class="message capella-msg" onclick="copyMessageText(this)">Hi, I am Capella AI created by Shadman Wasif Faruque! How can I help you today? 😊</div></div></div>`;
-            chatHistory = [];
+            resetChatUI();
             document.getElementById('sidebar').classList.remove('open');
             document.getElementById('overlay').classList.remove('active');
         });
@@ -404,11 +460,6 @@
             });
         }
 
-        function isImageGenerationRequest(text) {
-            const lower = text.toLowerCase();
-            return ['generate image', 'create image', 'draw', 'picture of', 'pic make', 'make a pic', 'image of', 'ছবি তৈরি', 'ছবি আঁক', 'ছবি বানাও'].some(kw => lower.includes(kw));
-        }
-
         function appendMessage(sender, text, type = 'text') {
             const wrapper = document.createElement('div');
             wrapper.className = `message-wrapper ${sender === 'user' ? 'user-wrapper' : 'capella-wrapper'}`;
@@ -480,16 +531,19 @@
 
             userInput.value = '';
             appendMessage('user', text);
-            chatHistory.push({ role: 'user', content: text });
+
+            if (currentMode === 'video' || currentMode === 'audio') {
+                appendMessage('capella', '⚠️ This feature is currently under active development.');
+                return;
+            }
 
             isGenerating = true;
             sendBtn.innerText = 'Stop';
             sendBtn.classList.add('stop-mode');
             abortController = new AbortController();
 
-            const selectedModel = modelSelector.value;
-
-            if (isImageGenerationRequest(text)) {
+            // Image Mode জেনারেট শুধুমাত্র Image Generator ট্যাবেই হবে
+            if (currentMode === 'image') {
                 appendThinking("Capella is generating image...");
                 try {
                     const res = await fetch('/api/generate-image', {
@@ -522,6 +576,9 @@
                 return;
             }
 
+            // Chat Mode
+            chatHistory.push({ role: 'user', content: text });
+            const selectedModel = modelSelector.value;
             const isDeepResearch = selectedModel === 'deep-research';
             const thinkingMsg = isDeepResearch ? "🔍 Capella is performing Deep Research & searching the web..." : "🔍 Capella is searching the web...";
             
@@ -573,6 +630,9 @@
                 handleSend();
             }
         });
+
+        // Initial Load Greeting
+        resetChatUI();
     </script>
 </body>
 </html>
