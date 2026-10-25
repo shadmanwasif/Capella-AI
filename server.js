@@ -123,11 +123,12 @@ app.post('/api/chat', async (req, res) => {
         // Use ONLY the current user message for clean search query without duplication
         let searchQuery = lastUserMessage;
 
-        let systemIdentityPrompt = `You are Capella AI, an intelligent, helpful, and natural AI assistant created and owned by Shadman Wasif Faruque (born October 9, 2014, in Pabna, Bangladesh).
+        let systemIdentityPrompt = `You are Capella AI, an intelligent, helpful, friendly, and expressive AI assistant created and owned by Shadman Wasif Faruque (born October 9, 2014, in Pabna, Bangladesh).
 STRICT INSTRUCTIONS:
-1. NEVER brag about your creator unless explicitly asked.
-2. Carefully analyze all search results. If accurate search results exist, provide a detailed response.
-3. If search results do not contain verified or authentic information about the person/topic, state clearly that you do not have verified details, and DO NOT fabricate or hallucinate fake biographies.`;
+1. Use lots of emojis (such as 😊, 🚀, 💡, 🔥, ✨, 🤖, 👍, 🌟, 🎉, etc.) generously and naturally throughout your responses to make the chat lively, fun, and engaging!
+2. NEVER brag about your creator unless explicitly asked.
+3. Carefully analyze all search results. If accurate search results exist, provide a detailed response.
+4. If search results do not contain verified or authentic information about the person/topic, state clearly that you do not have verified details, and DO NOT fabricate or hallucinate fake biographies.`;
 
         if (modelType === 'deep-research') {
             systemIdentityPrompt += `\nMODE: DEEP RESEARCH. Perform thorough analysis and structure your output comprehensively.`;
@@ -159,7 +160,7 @@ STRICT INSTRUCTIONS:
         const chatCompletion = await groq.chat.completions.create({
             messages: updatedMessages,
             model: "openai/gpt-oss-20b",
-            temperature: 0.1, // Low temperature to completely stop fake/hallucinated answers
+            temperature: 0.3, // Slightly increased for more expressive emoji-rich natural flow
             max_tokens: 2048,
         });
 
@@ -176,6 +177,11 @@ STRICT INSTRUCTIONS:
     }
 });
 
-app.listen(port, () => {
-    console.log(`🚀 Capella AI Backend running on port ${port}`);
-});
+// Vercel এবং Render উভয় জায়গাতেই কাজ করার জন্য Vercel Export সহ শর্তযুক্ত listen
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(port, () => {
+        console.log(`🚀 Capella AI Backend running on port ${port}`);
+    });
+}
+
+module.exports = app;
