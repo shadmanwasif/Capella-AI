@@ -10,13 +10,16 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '15mb' }));
 app.use(express.static(path.join(__dirname)));
 
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
 
+const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID ? process.env.CLOUDFLARE_ACCOUNT_ID.trim() : "";
+const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN ? process.env.CLOUDFLARE_API_TOKEN.trim() : "";
+const HF_API_KEY = process.env.HF_API_KEY ? process.env.HF_API_KEY.trim() : "";
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 
 function shouldForceSearch(message, modelType) {
@@ -60,19 +63,66 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Reliable & High-Quality Instant Image Generator Endpoint
+// Real Image Generation (Hugging Face + Cloudflare Fallback)
 app.post('/api/generate-image', async (req, res) => {
-    try {
-        const { prompt } = req.body;
-        if (!prompt) return res.status(400).json({ success: false, error: "Prompt required." });
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ success: false, error: "Prompt required." });
 
-        const encodedPrompt = encodeURIComponent(prompt);
-        const imageUrl = `https://pollinations.ai/p/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=42`;
+    // Method 1: Hugging Face Inference API (High Quality FLUX / SDXL)
+    if (HF_API_KEY) {
+        try {
+            const hfResponse = await fetch(
+                "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
+                {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${HF_API_KEY}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ inputs: prompt })
+                }
+            );
 
-        res.json({ success: true, imageUrl: imageUrl });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+            if (hfResponse.ok) {
+                const contentType = hfResponse.headers.get("content-type") || "image/jpeg";
+                if (contentType.startsWith("image/")) {
+                    const arrayBuffer = await hfResponse.arrayBuffer();
+                    const base64Image = Buffer.from(arrayBuffer).toString("base64");
+                    return res.json({ success: true, imageUrl: `data:${contentType};base64,${base64Image}` });
+                }
+            }
+        } catch (hfErr) {
+            console.error("HF Image Error, trying Cloudflare...", hfErr.message);
+        }
     }
+
+    // Method 2: Cloudflare Workers AI Fallback
+    if (CLOUDFLARE_ACCOUNT_ID && CLOUDFLARE_API_TOKEN) {
+        try {
+            const cfUrl = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/stabilityai/stable-diffusion-xl-base-1.0`;
+            const cfResponse = await fetch(cfUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ prompt: prompt })
+            });
+
+            if (cfResponse.ok) {
+                const arrayBuffer = await cfResponse.arrayBuffer();
+                const base64Image = Buffer.from(arrayBuffer).toString('base64');
+                return res.json({ success: true, imageUrl: `data:image/png;base64,${base64Image}` });
+            } else {
+                const errText = await cfResponse.text();
+                return res.status(500).json({ success: false, error: errText });
+            }
+        } catch (cfErr) {
+            return res.status(500).json({ success: false, error: cfErr.message });
+        }
+    }
+
+    res.status(500).json({ success: false, error: "No valid image generation API key responded." });
 });
 
 app.post('/api/chat', async (req, res) => {
@@ -88,7 +138,7 @@ STRICT INSTRUCTIONS:
 1. Use lots of emojis (such as 😊, 🚀, 💡, 🔥, ✨, 🤖, 👍, 🌟, 🎉, etc.) generously and naturally throughout your responses to make the chat lively, fun, and engaging!
 2. NEVER brag about your creator unless explicitly asked.
 3. Carefully analyze all search results. If accurate search results exist, provide a detailed response.
-4. Format any tabular comparisons or structured data cleanly in Markdown Tables.`;
+4. Format any tabular comparisons, charts, or structured data cleanly in Markdown Tables.`;
 
         if (modelType === 'deep-research') {
             systemIdentityPrompt += `\nMODE: DEEP RESEARCH. Perform thorough analysis and structure your output comprehensively.`;
