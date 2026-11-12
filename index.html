@@ -102,10 +102,15 @@
         .sender-icon { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
         .sender-name { font-size: 0.78rem; color: #94a3b8; font-weight: 500; }
 
-        .message-box-outer { position: relative; display: inline-block; }
-        .message { padding: 12px 16px; border-radius: 16px; line-height: 1.5; font-size: 0.92rem; word-wrap: break-word; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; position: relative; }
+        .message-box-outer { position: relative; display: inline-block; max-width: 100%; overflow-x: auto; }
+        .message { padding: 12px 16px; border-radius: 16px; line-height: 1.5; font-size: 0.92rem; word-break: break-word; overflow-wrap: break-word; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; position: relative; max-width: 100%; }
         .user-msg { background: linear-gradient(135deg, #312e81, #1e1b4b); color: #f1f5f9; border-bottom-right-radius: 4px; border: 1px solid rgba(99,102,241,0.3); }
         .capella-msg { background-color: var(--msg-capella); color: var(--text-color); border-bottom-left-radius: 4px; border: 1px solid var(--border-color); }
+
+        /* Markdown Table Styling for Structured Data/Charts */
+        .message table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.88rem; }
+        .message th, .message td { border: 1px solid var(--border-color); padding: 8px 10px; text-align: left; }
+        .message th { background: rgba(99, 102, 241, 0.15); font-weight: 600; }
 
         .copy-tooltip { position: absolute; top: -32px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 10; border: 1px solid rgba(255,255,255,0.1); }
         .copy-tooltip.show { opacity: 1; }
@@ -113,7 +118,7 @@
         .msg-image { max-width: 100%; max-height: 320px; border-radius: 12px; display: block; border: 1px solid rgba(255,255,255,0.1); margin-top: 8px; }
         .download-img-btn { margin-top: 10px; background: rgba(99,102,241,0.9); color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
 
-        .code-runner-container { background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 8px; margin: 10px 0; overflow: hidden; }
+        .code-runner-container { background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 8px; margin: 10px 0; overflow: hidden; max-width: 100%; }
         .code-runner-header { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.1); padding: 6px 12px; font-size: 12px; color: #94a3b8; }
         .code-actions button { background: #1f293d; color: #e2e8f0; border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-left: 6px; }
         .code-actions .btn-run { background: #10b981; color: white; font-weight: bold; border: none; }
@@ -124,7 +129,7 @@
 
         .input-container { padding: 10px 12px; background: var(--header-bg); backdrop-filter: blur(12px); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
         .input-box { display: flex; align-items: center; gap: 8px; background-color: var(--input-bg); border-radius: 20px; padding: 6px 12px; border: 1px solid var(--border-color); }
-        .input-box textarea { flex: 1; background: none; border: none; color: var(--text-color); resize: none; max-height: 120px; outline: none; font-size: 0.92rem; padding: 4px 0; }
+        .input-box textarea { flex: 1; background: none; border: none; color: var(--text-color); resize: none; max-height: 120px; outline: none; font-size: 0.92rem; padding: 4px 0; width: 100%; }
         .send-btn { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; padding: 8px 14px; border-radius: 16px; cursor: pointer; font-weight: 600; font-size: 0.82rem; flex-shrink: 0; transition: background 0.2s; }
         .send-btn.stop-mode { background: #ef4444; }
 
@@ -182,7 +187,6 @@
         </div>
     </div>
 
-    <!-- Settings Panel with Capella Simple & Deep Research Models -->
     <div class="settings-panel" id="settingsPanel">
         <div class="settings-header">
             <span style="font-weight: 700;">Settings</span>
@@ -266,6 +270,28 @@
 
         themeSelect.value = 'light';
         document.body.classList.remove('dark-mode');
+
+        // Auto Focus Input / Keyboard On Load
+        window.addEventListener('DOMContentLoaded', () => {
+            userInput.focus();
+        });
+
+        // Smart Keyboard management on scroll
+        let lastScrollTop = 0;
+        chatContainer.addEventListener('scroll', () => {
+            let st = chatContainer.scrollTop;
+            let maxScroll = chatContainer.scrollHeight - chatContainer.clientHeight;
+            
+            // If user scrolls up significantly, blur input (hide keyboard on mobile)
+            if (st < lastScrollTop - 20 && st < maxScroll - 100) {
+                userInput.blur();
+            } 
+            // If user scrolls back down near the bottom, open keyboard/focus again
+            else if (st > maxScroll - 60) {
+                userInput.focus();
+            }
+            lastScrollTop = st <= 0 ? 0 : st;
+        });
 
         themeSelect.addEventListener('change', (e) => {
             if (e.target.value === 'dark') {
@@ -452,6 +478,44 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
+        // Line-by-Line / Word Streaming Typewriter Effect for Capella
+        function appendStreamingMessage(fullText, type = 'text') {
+            const wrapper = document.createElement('div');
+            wrapper.className = `message-wrapper capella-wrapper`;
+            
+            const messageId = 'msg-' + Date.now();
+            wrapper.innerHTML = `
+                <div class="message-header">
+                    <img src="${profilePicUrl}" class="sender-icon">
+                    <span class="sender-name">Capella</span>
+                </div>
+                <div class="message-box-outer">
+                    <div class="copy-tooltip">Copied!</div>
+                    <div class="message capella-msg" id="${messageId}" onclick="copyMessageText(this)"></div>
+                </div>`;
+
+            chatContainer.appendChild(wrapper);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            const msgElement = document.getElementById(messageId);
+            let currentText = "";
+            let i = 0;
+            
+            // Speed of stream animation
+            let speed = 12; 
+
+            function typeWriter() {
+                if (i < fullText.length) {
+                    currentText += fullText.charAt(i);
+                    msgElement.innerHTML = renderMessageContent(currentText);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                    i++;
+                    setTimeout(typeWriter, speed);
+                }
+            }
+            typeWriter();
+        }
+
         function appendThinking(text = "Capella is thinking...") {
             const wrapper = document.createElement('div');
             wrapper.className = `message-wrapper capella-wrapper`;
@@ -493,7 +557,7 @@
             appendMessage('user', text);
 
             if (currentMode === 'video' || currentMode === 'audio') {
-                appendMessage('capella', '⚠️ This feature is currently under active development.');
+                appendStreamingMessage('⚠️ This feature is currently under active development.');
                 return;
             }
 
@@ -521,12 +585,12 @@
                         const imgHTML = `<img src="${data.imageUrl}" class="msg-image"><br><a href="${data.imageUrl}" download="capella.jpg" target="_blank" class="download-img-btn">⬇ Download Image</a>`;
                         appendMessage('capella', imgHTML, 'image');
                     } else {
-                        appendMessage('capella', '⚠️ Image generation failed.');
+                        appendStreamingMessage('⚠️ Image generation failed.');
                     }
                 } catch (e) {
                     if (e.name !== 'AbortError') {
                         removeThinking();
-                        appendMessage('capella', '⚠️ Error generating image.');
+                        appendStreamingMessage('⚠️ Error generating image.');
                     }
                     isGenerating = false;
                     sendBtn.innerText = 'Send';
@@ -544,7 +608,7 @@
 
             try {
                 const selectedLang = langSelect.value;
-                let langInstruction = selectedLang !== "auto" ? `Respond STRICTLY in ${selectedLang} language.` : "";
+                let langInstruction = selectedLang !== "auto" ? `Respond STRICTLY in ${selectedLang} language. Format any tabular comparison or structured lists cleanly in Markdown Tables.` : "Format any tabular comparison or structured lists cleanly in Markdown Tables.";
 
                 const res = await fetch('/api/chat', {
                     method: 'POST',
@@ -565,15 +629,15 @@
                 sendBtn.classList.remove('stop-mode');
 
                 if (res.ok) {
-                    appendMessage('capella', data.reply);
+                    appendStreamingMessage(data.reply);
                     chatHistory.push({ role: 'assistant', content: data.reply });
                 } else {
-                    appendMessage('capella', '⚠️ Error processing request.');
+                    appendStreamingMessage('⚠️ Error processing request.');
                 }
             } catch (e) {
                 if (e.name !== 'AbortError') {
                     removeThinking();
-                    appendMessage('capella', '⚠️ Connection error.');
+                    appendStreamingMessage('⚠️ Connection error.');
                 }
                 isGenerating = false;
                 sendBtn.innerText = 'Send';
