@@ -666,6 +666,44 @@
 
             if (currentMode === 'image') {
                 appendThinking("Capella is generating image...");
+                
+                const messageId = 'img-msg-' + Date.now();
+                const badgeId = 'img-badge-' + Date.now();
+                
+                removeThinking();
+                
+                const wrapper = document.createElement('div');
+                wrapper.className = `message-wrapper capella-wrapper`;
+                wrapper.innerHTML = `
+                    <div class="message-header">
+                        <div class="sender-info">
+                            <img src="${profilePicUrl}" class="sender-icon">
+                            <span class="sender-name">Capella</span>
+                        </div>
+                        <span class="progress-badge" id="${badgeId}">0%</span>
+                    </div>
+                    <div class="message-box-outer">
+                        <div class="copy-tooltip">Copied!</div>
+                        <div class="message capella-msg" id="${messageId}" style="min-width: 240px; text-align: center;">
+                            <div class="blue-dot-pulse" style="margin: 20px auto;" id="${messageId}-loader"></div>
+                            <img src="" class="msg-image" alt="Generated Image" id="${messageId}-img" style="display:none; opacity:0; transition: opacity 0.4s ease;" onload="document.getElementById('${messageId}-loader').style.display='none'; this.style.display='block'; this.style.opacity=1;">
+                        </div>
+                    </div>`;
+                chatContainer.appendChild(wrapper);
+                if (!userScrolledUp) chatContainer.scrollTop = chatContainer.scrollHeight;
+
+                const badgeElement = document.getElementById(badgeId);
+                const imgElement = document.getElementById(`${messageId}-img`);
+                
+                let percent = 0;
+                let progressInterval = setInterval(() => {
+                    if (percent < 90) {
+                        percent += Math.floor(Math.random() * 15) + 5;
+                        if (percent > 90) percent = 90;
+                        badgeElement.innerText = percent + '%';
+                    }
+                }, 150);
+
                 try {
                     const res = await fetch('/api/generate-image', {
                         method: 'POST',
@@ -674,28 +712,29 @@
                         signal: abortController.signal
                     });
                     const data = await res.json();
-                    removeThinking();
+                    
+                    clearInterval(progressInterval);
+                    badgeElement.innerText = '100%';
                     isGenerating = false;
                     sendBtn.innerText = 'Send';
                     sendBtn.classList.remove('stop-mode');
 
                     if (data.success && data.imageUrl) {
                         const ext = data.imageUrl.startsWith('data:image/png') ? 'png' : 'jpg';
-                        const imgHTML = `
-                            <div style="position:relative; min-height: 200px; display:flex; align-items:center; justify-content:center;">
-                                <div class="blue-dot-pulse" id="imgLoadingDot" style="position:absolute;"></div>
-                                <img src="${data.imageUrl}" class="msg-image" alt="Generated Image" onload="this.previousElementSibling.style.display='none'; this.style.opacity=1;" style="opacity:0; transition: opacity 0.4s ease;">
-                            </div>
-                            <br><a href="${data.imageUrl}" download="capella.${ext}" class="download-img-btn" onclick="event.stopPropagation()">⬇ Download Image</a>
-                        `;
-                        appendMessage('capella', imgHTML, 'image');
+                        imgElement.src = data.imageUrl;
+                        
+                        const outerBox = document.getElementById(messageId);
+                        const downloadBtn = document.createElement('div');
+                        downloadBtn.innerHTML = `<br><a href="${data.imageUrl}" download="capella.${ext}" class="download-img-btn" onclick="event.stopPropagation()">⬇ Download Image</a>`;
+                        outerBox.appendChild(downloadBtn);
                     } else {
-                        appendStreamingMessage('⚠️ Image generation failed: ' + (data.error || 'Unknown error'));
+                        document.getElementById(`${messageId}-loader`).style.display = 'none';
+                        document.getElementById(messageId).innerHTML += '<p style="color: #ef4444; font-size: 0.9rem;">⚠️ Image generation failed.</p>';
                     }
                 } catch (e) {
+                    clearInterval(progressInterval);
                     if (e.name !== 'AbortError') {
-                        removeThinking();
-                        appendStreamingMessage('⚠️ Error generating image.');
+                        document.getElementById(`${messageId}-loader`).style.display = 'none';
                     }
                     isGenerating = false;
                     sendBtn.innerText = 'Send';
