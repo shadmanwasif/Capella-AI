@@ -1,18 +1,17 @@
 require('dotenv').config();
-const express = require('path'); // Fixed require pattern
-const expressApp = require('express');
-const pathModule = require('path');
+const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const { Groq } = require('groq-sdk');
 const axios = require('axios');
 const fetch = require('node-fetch');
 
-const app = expressApp();
+const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(expressApp.json());
-app.use(expressApp.static(pathModule.join(__dirname)));
+app.use(express.json());
+app.use(express.static(path.join(__dirname)));
 
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
@@ -60,10 +59,10 @@ async function performWebSearch(query) {
 }
 
 app.get('/', (req, res) => {
-    res.sendFile(pathModule.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Fixed Cloudflare Image Generation Endpoint
+// Cloudflare Workers AI Image Generation Endpoint (Flux-1-Schnell)
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
@@ -89,13 +88,11 @@ app.post('/api/generate-image', async (req, res) => {
             throw new Error(`Cloudflare AI Error (${response.status}): ${errorText}`);
         }
 
-        // Check content type to handle binary vs json response
         const contentType = response.headers.get('content-type');
         let base64Image = "";
 
         if (contentType && contentType.includes('application/json')) {
             const jsonRes = await response.json();
-            // Sometimes Cloudflare returns base64 inside JSON result
             if (jsonRes.result && jsonRes.result.image) {
                 base64Image = jsonRes.result.image;
             } else {
