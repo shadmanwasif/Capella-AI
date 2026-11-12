@@ -114,7 +114,7 @@
         .message th, .message td { border: 1px solid var(--border-color); padding: 8px 10px; text-align: left; }
         .message th { background: rgba(99, 102, 241, 0.15); font-weight: 600; }
 
-        /* Copy Tooltip (Visible cleanly above/inside message for 0.25s) */
+        /* Copy Tooltip with 0.25s timing */
         .copy-tooltip { position: absolute; top: 6px; right: 8px; background: #10b981; color: #fff; font-size: 0.72rem; font-weight: 600; padding: 3px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transform: scale(0.9); transition: opacity 0.08s ease, transform 0.08s ease; z-index: 25; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
         .copy-tooltip.show { opacity: 1; transform: scale(1); }
 
@@ -257,7 +257,7 @@
         let abortController = null;
         let currentMode = 'chat';
         let uploadedImageBase64 = null;
-        let userScrolledUp = false; // Tracks if user manually scrolled up during reply
+        let userScrolledUp = false;
 
         const profilePicUrl = "https://i.ibb.co.com/fPL77HL/Screenshot-2026-11-08-163158.png";
 
@@ -294,7 +294,7 @@
             userInput.focus();
         });
 
-        // Free scroll up anytime + Smart Keyboard handling
+        // Free scroll up anytime
         let lastScrollTop = 0;
         chatContainer.addEventListener('scroll', () => {
             const st = chatContainer.scrollTop;
@@ -313,7 +313,6 @@
             lastScrollTop = st <= 0 ? 0 : st;
         });
 
-        // Image Upload Handlers
         uploadBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -547,7 +546,6 @@
             }
         }
 
-        // Streaming Typewriter with Live Progress Percentage (0% to 100%) & Free User Scroll
         function appendStreamingMessage(fullText) {
             const wrapper = document.createElement('div');
             wrapper.className = `message-wrapper capella-wrapper`;
@@ -587,7 +585,6 @@
                     const percent = Math.floor(((i + 1) / fullText.length) * 100);
                     badgeElement.innerText = percent + '%';
 
-                    // Only auto-scroll if user hasn't scrolled up
                     if (!userScrolledUp) {
                         chatContainer.scrollTop = chatContainer.scrollHeight;
                     }
@@ -642,7 +639,6 @@
             const text = userInput.value.trim();
             if (!text && !uploadedImageBase64) return;
 
-            // Reset scroll lock when sending a new message
             userScrolledUp = false;
 
             let displayContent = text;
@@ -686,7 +682,10 @@
                     if (data.success && data.imageUrl) {
                         const ext = data.imageUrl.startsWith('data:image/png') ? 'png' : 'jpg';
                         const imgHTML = `
-                            <img src="${data.imageUrl}" class="msg-image" alt="Generated Image">
+                            <div style="position:relative; min-height: 200px; display:flex; align-items:center; justify-content:center;">
+                                <div class="blue-dot-pulse" id="imgLoadingDot" style="position:absolute;"></div>
+                                <img src="${data.imageUrl}" class="msg-image" alt="Generated Image" onload="this.previousElementSibling.style.display='none'; this.style.opacity=1;" style="opacity:0; transition: opacity 0.4s ease;">
+                            </div>
                             <br><a href="${data.imageUrl}" download="capella.${ext}" class="download-img-btn" onclick="event.stopPropagation()">⬇ Download Image</a>
                         `;
                         appendMessage('capella', imgHTML, 'image');
