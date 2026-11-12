@@ -114,8 +114,8 @@
         .message th, .message td { border: 1px solid var(--border-color); padding: 8px 10px; text-align: left; }
         .message th { background: rgba(99, 102, 241, 0.15); font-weight: 600; }
 
-        /* Copy Tooltip */
-        .copy-tooltip { position: absolute; top: -32px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 10; border: 1px solid rgba(255,255,255,0.1); }
+        /* Copy Tooltip with 0.25s timing */
+        .copy-tooltip { position: absolute; top: -32px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s ease; z-index: 10; border: 1px solid rgba(255,255,255,0.1); }
         .copy-tooltip.show { opacity: 1; }
 
         .msg-image { max-width: 100%; max-height: 320px; border-radius: 12px; display: block; border: 1px solid rgba(255,255,255,0.1); margin-top: 8px; }
@@ -445,52 +445,20 @@
             const code = container.querySelector('code').innerText;
             navigator.clipboard.writeText(code).then(() => {
                 button.innerText = 'Copied!';
-                setTimeout(() => button.innerText = 'Copy', 2000);
+                setTimeout(() => button.innerText = 'Copy', 250);
             });
         }
 
-        function runCode(button) {
-            const container = button.closest('.code-runner-container');
-            const code = container.querySelector('code').innerText;
-            const outputFrame = container.querySelector('.code-output-frame');
-
-            outputFrame.style.display = 'block';
-            const doc = outputFrame.contentDocument || outputFrame.contentWindow.document;
-
-            doc.open();
-            doc.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        body { font-family: monospace; padding: 10px; background: #050608; color: #10b981; margin: 0; font-size: 12px; }
-                    </style>
-                </head>
-                <body>
-                    <script>
-                        console.log = function(...args) {
-                            document.body.innerHTML += args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ') + '<br>';
-                        };
-                        try {
-                            ${code}
-                        } catch(err) {
-                            document.body.innerHTML += '<span style="color:#ef4444;">Error: ' + err.message + '</span>';
-                        }
-                    <\/script>
-                </body>
-                </html>
-            `);
-            doc.close();
-        }
-
-        // Click to Copy Message Text with Tooltip
+        // Click to Copy Message Text with exactly 0.25 sec (250ms) 'Copied!' tooltip display
         function copyMessageText(element) {
             const textToCopy = element.innerText || element.textContent;
             navigator.clipboard.writeText(textToCopy).then(() => {
                 const tooltip = element.parentElement.querySelector('.copy-tooltip');
                 if (tooltip) {
                     tooltip.classList.add('show');
-                    setTimeout(() => tooltip.classList.remove('show'), 2000);
+                    setTimeout(() => {
+                        tooltip.classList.remove('show');
+                    }, 250); // Exactly 0.25 seconds
                 }
             });
         }
@@ -645,7 +613,12 @@
                     sendBtn.classList.remove('stop-mode');
 
                     if (data.success) {
-                        const imgHTML = `<img src="${data.imageUrl}" class="msg-image"><br><a href="${data.imageUrl}" download="capella.jpg" target="_blank" class="download-img-btn">⬇ Download Image</a>`;
+                        const imgHTML = `
+                            <div style="position:relative;">
+                                <img src="${data.imageUrl}" class="msg-image" onload="this.style.opacity=1" style="opacity:0; transition: opacity 0.3s ease;">
+                            </div>
+                            <br><a href="${data.imageUrl}" download="capella.jpg" target="_blank" class="download-img-btn">⬇ Download Image</a>
+                        `;
                         appendMessage('capella', imgHTML, 'image');
                     } else {
                         appendStreamingMessage('⚠️ Image generation failed.');
