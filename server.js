@@ -20,17 +20,24 @@ const groq = new Groq({
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 
 function shouldForceSearch(message, modelType) {
+    // শুধুমাত্র Deep Research মোড অন থাকলেই Tavily সার্চ করবে
     if (modelType === 'deep-research') return true;
+    
     const lower = message.toLowerCase().trim();
-    const greetings = ['hi', 'hello', 'hey', 'sup', 'salam', 'kemon acho', 'how are you', 'hru', 'tumi ke', 'who r u', 'who are you', 'gm', 'gn'];
+    
+    // সাধারণ গ্রিটিংস বা ছোট কথায় কখনই Tavily সার্চ করবে না (ক্রেডিট বাঁচানোর জন্য)
+    const greetings = ['hi', 'hello', 'hey', 'sup', 'salam', 'kemon acho', 'how are you', 'hru', 'tumi ke', 'who r u', 'who are you', 'gm', 'gn', 'keta', 'ki khbor'];
     if (greetings.includes(lower) || lower.split(' ').length < 2) {
         return false;
     }
-    const searchKeywords = [
-        'who is', 'what is', 'where is', 'when is', 'why', 'how to', 'latest', 'news', 'search', 'find', 'weather', 
-        'price', 'biography', 'details about', 'tell me about', 'janis', 'jano ki', 'khuje', 'serch', 'chesser'
+    
+    // শুধুমাত্র সুনির্দিষ্ট তথ্য বা লেটেস্ট খোঁজার কিওয়ার্ড থাকলেই সার্চ করবে
+    const strictSearchKeywords = [
+        'who is', 'what is', 'where is', 'when is', 'latest', 'news', 'search', 'weather', 
+        'price of', 'biography of', 'details about', 'current', 'aajker', 'ekhon'
     ];
-    return searchKeywords.some(kw => lower.includes(kw));
+    
+    return strictSearchKeywords.some(kw => lower.includes(kw));
 }
 
 async function performWebSearch(query) {
@@ -60,14 +67,13 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// High-Quality Flux Image Generator Endpoint (No NSFW blocks, beautiful details)
+// High-Quality Flux Image Generator Endpoint (No NSFW blocks)
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
         if (!prompt) return res.status(400).json({ success: false, error: "Prompt required." });
 
         const encodedPrompt = encodeURIComponent(prompt);
-        // model=flux যোগ করার ফলে এখন ছবি অনেক শার্প এবং প্রিমিয়াম কোয়ালিটির হবে
         const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true`;
 
         res.json({ success: true, imageUrl: imageUrl });
