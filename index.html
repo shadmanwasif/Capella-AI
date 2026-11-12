@@ -93,19 +93,19 @@
         .setting-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 0.95rem; }
         .setting-item select, .setting-item input[type="checkbox"] { padding: 6px; border-radius: 6px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); outline: none; }
 
-        .chat-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
+        .chat-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
         .message-wrapper { display: flex; flex-direction: column; max-width: 88%; position: relative; }
         .user-wrapper { align-self: flex-end; }
         .capella-wrapper { align-self: flex-start; }
 
-        .message-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; width: 100%; }
+        .message-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; width: 100%; gap: 8px; }
         .sender-info { display: flex; align-items: center; gap: 6px; }
         .sender-icon { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
         .sender-name { font-size: 0.78rem; color: #94a3b8; font-weight: 500; }
         .progress-badge { font-size: 0.72rem; background: rgba(99, 102, 241, 0.2); color: #818cf8; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
 
-        .message-box-outer { position: relative; display: inline-block; max-width: 100%; overflow-x: auto; }
-        .message { padding: 12px 16px; border-radius: 16px; line-height: 1.5; font-size: 0.92rem; word-break: break-word; overflow-wrap: break-word; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; position: relative; max-width: 100%; }
+        .message-box-outer { position: relative; display: inline-block; max-width: 100%; }
+        .message { padding: 12px 16px; border-radius: 16px; line-height: 1.5; font-size: 0.92rem; word-break: break-word; overflow-wrap: break-word; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; position: relative; max-width: 100%; overflow-x: auto; }
         .user-msg { background: linear-gradient(135deg, #312e81, #1e1b4b); color: #f1f5f9; border-bottom-right-radius: 4px; border: 1px solid rgba(99,102,241,0.3); }
         .capella-msg { background-color: var(--msg-capella); color: var(--text-color); border-bottom-left-radius: 4px; border: 1px solid var(--border-color); }
 
@@ -114,9 +114,9 @@
         .message th, .message td { border: 1px solid var(--border-color); padding: 8px 10px; text-align: left; }
         .message th { background: rgba(99, 102, 241, 0.15); font-weight: 600; }
 
-        /* Copy Tooltip with 0.25s timing */
-        .copy-tooltip { position: absolute; top: -32px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s ease; z-index: 10; border: 1px solid rgba(255,255,255,0.1); }
-        .copy-tooltip.show { opacity: 1; }
+        /* Copy Tooltip (Visible cleanly above/inside message for 0.25s) */
+        .copy-tooltip { position: absolute; top: 6px; right: 8px; background: #10b981; color: #fff; font-size: 0.72rem; font-weight: 600; padding: 3px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transform: scale(0.9); transition: opacity 0.08s ease, transform 0.08s ease; z-index: 25; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+        .copy-tooltip.show { opacity: 1; transform: scale(1); }
 
         .msg-image { max-width: 100%; max-height: 320px; border-radius: 12px; display: block; border: 1px solid rgba(255,255,255,0.1); margin-top: 8px; }
         .download-img-btn { margin-top: 10px; background: rgba(99,102,241,0.9); color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
@@ -257,6 +257,7 @@
         let abortController = null;
         let currentMode = 'chat';
         let uploadedImageBase64 = null;
+        let userScrolledUp = false; // Tracks if user manually scrolled up during reply
 
         const profilePicUrl = "https://i.ibb.co.com/fPL77HL/Screenshot-2026-11-08-163158.png";
 
@@ -280,7 +281,6 @@
         const searchToggle = document.getElementById('searchToggle');
         const langSelect = document.getElementById('langSelect');
         const themeSelect = document.getElementById('themeSelect');
-        const appTitle = document.getElementById('appTitle');
         const uploadBtn = document.getElementById('uploadBtn');
         const fileInput = document.getElementById('fileInput');
         const previewWrapper = document.getElementById('previewWrapper');
@@ -290,19 +290,24 @@
         themeSelect.value = 'light';
         document.body.classList.remove('dark-mode');
 
-        // Auto Focus Input on Load
         window.addEventListener('DOMContentLoaded', () => {
             userInput.focus();
         });
 
-        // Smart Keyboard management on scroll
+        // Free scroll up anytime + Smart Keyboard handling
         let lastScrollTop = 0;
         chatContainer.addEventListener('scroll', () => {
-            let st = chatContainer.scrollTop;
-            let maxScroll = chatContainer.scrollHeight - chatContainer.clientHeight;
-            if (st < lastScrollTop - 20 && st < maxScroll - 100) {
-                userInput.blur();
-            } else if (st > maxScroll - 60) {
+            const st = chatContainer.scrollTop;
+            const maxScroll = chatContainer.scrollHeight - chatContainer.clientHeight;
+            const distanceFromBottom = maxScroll - st;
+
+            if (distanceFromBottom > 50) {
+                userScrolledUp = true;
+                if (st < lastScrollTop - 15) {
+                    userInput.blur();
+                }
+            } else {
+                userScrolledUp = false;
                 userInput.focus();
             }
             lastScrollTop = st <= 0 ? 0 : st;
@@ -351,6 +356,7 @@
         function resetChatUI() {
             chatHistory = [];
             chatContainer.innerHTML = '';
+            userScrolledUp = false;
             if (currentMode === 'chat') {
                 appendMessage('capella', getGreeting());
             } else if (currentMode === 'image') {
@@ -421,9 +427,9 @@
                 header.innerHTML = `
                     <span class="code-lang">${language.toUpperCase()}</span>
                     <div class="code-actions">
-                        <button class="btn-copy" onclick="copyCode(this)">Copy</button>
+                        <button class="btn-copy" onclick="event.stopPropagation(); copyCode(this)">Copy</button>
                         ${(language === 'javascript' || language === 'html' || language === 'js') ? 
-                          `<button class="btn-run" onclick="runCode(this)">▶ Run</button>` : ''}
+                          `<button class="btn-run" onclick="event.stopPropagation(); runCode(this)">▶ Run</button>` : ''}
                     </div>
                 `;
 
@@ -443,24 +449,77 @@
         function copyCode(button) {
             const container = button.closest('.code-runner-container');
             const code = container.querySelector('code').innerText;
-            navigator.clipboard.writeText(code).then(() => {
-                button.innerText = 'Copied!';
-                setTimeout(() => button.innerText = 'Copy', 250);
-            });
+            copyToClipboard(code);
+            button.innerText = 'Copied!';
+            setTimeout(() => button.innerText = 'Copy', 250);
         }
 
-        // Click to Copy Message Text with exactly 0.25 sec (250ms) 'Copied!' tooltip display
+        function runCode(button) {
+            const container = button.closest('.code-runner-container');
+            const code = container.querySelector('code').innerText;
+            const outputFrame = container.querySelector('.code-output-frame');
+
+            outputFrame.style.display = 'block';
+            const doc = outputFrame.contentDocument || outputFrame.contentWindow.document;
+
+            doc.open();
+            doc.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { font-family: monospace; padding: 10px; background: #050608; color: #10b981; margin: 0; font-size: 12px; }
+                    </style>
+                </head>
+                <body>
+                    <script>
+                        console.log = function(...args) {
+                            document.body.innerHTML += args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ') + '<br>';
+                        };
+                        try {
+                            ${code}
+                        } catch(err) {
+                            document.body.innerHTML += '<span style="color:#ef4444;">Error: ' + err.message + '</span>';
+                        }
+                    <\/script>
+                </body>
+                </html>
+            `);
+            doc.close();
+        }
+
+        function copyToClipboard(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(ta);
+        }
+
+        // Click to Copy Message Text -> Shows 'Copied!' for 0.25s (250ms)
         function copyMessageText(element) {
-            const textToCopy = element.innerText || element.textContent;
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                const tooltip = element.parentElement.querySelector('.copy-tooltip');
-                if (tooltip) {
-                    tooltip.classList.add('show');
-                    setTimeout(() => {
-                        tooltip.classList.remove('show');
-                    }, 250); // Exactly 0.25 seconds
-                }
-            });
+            const textToCopy = (element.innerText || element.textContent || "").trim();
+            if (!textToCopy) return;
+            copyToClipboard(textToCopy);
+            const tooltip = element.parentElement.querySelector('.copy-tooltip');
+            if (tooltip) {
+                tooltip.classList.add('show');
+                clearTimeout(tooltip._hideTimer);
+                tooltip._hideTimer = setTimeout(() => {
+                    tooltip.classList.remove('show');
+                }, 250);
+            }
         }
 
         function appendMessage(sender, text, type = 'text') {
@@ -483,10 +542,12 @@
                 </div>`;
 
             chatContainer.appendChild(wrapper);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            if (!userScrolledUp) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
         }
 
-        // Streaming Typewriter with Live Progress Percentage (0% to 100%)
+        // Streaming Typewriter with Live Progress Percentage (0% to 100%) & Free User Scroll
         function appendStreamingMessage(fullText) {
             const wrapper = document.createElement('div');
             wrapper.className = `message-wrapper capella-wrapper`;
@@ -508,23 +569,28 @@
                 </div>`;
 
             chatContainer.appendChild(wrapper);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            if (!userScrolledUp) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
 
             const msgElement = document.getElementById(messageId);
             const badgeElement = document.getElementById(badgeId);
             let currentText = "";
             let i = 0;
-            let speed = 10; 
+            const speed = 10; 
 
             function typeWriter() {
                 if (i < fullText.length) {
                     currentText += fullText.charAt(i);
                     msgElement.innerHTML = renderMessageContent(currentText);
                     
-                    let percent = Math.floor(((i + 1) / fullText.length) * 100);
+                    const percent = Math.floor(((i + 1) / fullText.length) * 100);
                     badgeElement.innerText = percent + '%';
 
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                    // Only auto-scroll if user hasn't scrolled up
+                    if (!userScrolledUp) {
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
                     i++;
                     setTimeout(typeWriter, speed);
                 } else {
@@ -553,7 +619,9 @@
                     </div>
                 </div>`;
             chatContainer.appendChild(wrapper);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            if (!userScrolledUp) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
         }
 
         function removeThinking() {
@@ -573,6 +641,9 @@
 
             const text = userInput.value.trim();
             if (!text && !uploadedImageBase64) return;
+
+            // Reset scroll lock when sending a new message
+            userScrolledUp = false;
 
             let displayContent = text;
             if (uploadedImageBase64) {
@@ -612,16 +683,15 @@
                     sendBtn.innerText = 'Send';
                     sendBtn.classList.remove('stop-mode');
 
-                    if (data.success) {
+                    if (data.success && data.imageUrl) {
+                        const ext = data.imageUrl.startsWith('data:image/png') ? 'png' : 'jpg';
                         const imgHTML = `
-                            <div style="position:relative;">
-                                <img src="${data.imageUrl}" class="msg-image" onload="this.style.opacity=1" style="opacity:0; transition: opacity 0.3s ease;">
-                            </div>
-                            <br><a href="${data.imageUrl}" download="capella.jpg" target="_blank" class="download-img-btn">⬇ Download Image</a>
+                            <img src="${data.imageUrl}" class="msg-image" alt="Generated Image">
+                            <br><a href="${data.imageUrl}" download="capella.${ext}" class="download-img-btn" onclick="event.stopPropagation()">⬇ Download Image</a>
                         `;
                         appendMessage('capella', imgHTML, 'image');
                     } else {
-                        appendStreamingMessage('⚠️ Image generation failed.');
+                        appendStreamingMessage('⚠️ Image generation failed: ' + (data.error || 'Unknown error'));
                     }
                 } catch (e) {
                     if (e.name !== 'AbortError') {
