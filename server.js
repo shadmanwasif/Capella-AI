@@ -1,24 +1,25 @@
 require('dotenv').config();
-const express = require('express');
-const path = require('path');
+const express = require('path'); // Fixed require pattern
+const expressApp = require('express');
+const pathModule = require('path');
 const cors = require('cors');
 const { Groq } = require('groq-sdk');
 const axios = require('axios');
 const fetch = require('node-fetch');
 
-const app = express();
+const app = expressApp();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+app.use(expressApp.json());
+app.use(expressApp.static(pathModule.join(__dirname)));
 
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
 
-const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
-const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID ? process.env.CLOUDFLARE_ACCOUNT_ID.trim() : "";
+const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN ? process.env.CLOUDFLARE_API_TOKEN.trim() : "";
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 
 function shouldForceSearch(message, modelType) {
@@ -59,32 +60,52 @@ async function performWebSearch(query) {
 }
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(pathModule.join(__dirname, 'index.html'));
 });
 
+// Fixed Cloudflare Image Generation Endpoint
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
         if (!prompt) return res.status(400).json({ success: false, error: "Prompt required." });
+        
         if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN) {
-            return res.status(500).json({ success: false, error: "Cloudflare credentials missing." });
+            return res.status(500).json({ success: false, error: "Cloudflare credentials missing in environment." });
         }
 
-        const response = await fetch(
-            `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID.trim()}/ai/run/@cf/black-forest-labs/flux-1-schnell`,
-            {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN.trim()}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ prompt: prompt })
-            }
-        );
+        const cfUrl = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/black-forest-labs/flux-1-schnell`;
+        
+        const response = await fetch(cfUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ prompt: prompt })
+        });
 
-        if (!response.ok) throw new Error(await response.text());
-        const arrayBuffer = await response.arrayBuffer();
-        const base64Image = Buffer.from(arrayBuffer).toString('base64');
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Cloudflare AI Error (${response.status}): ${errorText}`);
+        }
+
+        // Check content type to handle binary vs json response
+        const contentType = response.headers.get('content-type');
+        let base64Image = "";
+
+        if (contentType && contentType.includes('application/json')) {
+            const jsonRes = await response.json();
+            // Sometimes Cloudflare returns base64 inside JSON result
+            if (jsonRes.result && jsonRes.result.image) {
+                base64Image = jsonRes.result.image;
+            } else {
+                throw new Error("Invalid JSON structure received from Cloudflare AI.");
+            }
+        } else {
+            const arrayBuffer = await response.arrayBuffer();
+            base64Image = Buffer.from(arrayBuffer).toString('base64');
+        }
+
         res.json({ success: true, imageUrl: `data:image/jpeg;base64,${base64Image}` });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -104,7 +125,7 @@ STRICT INSTRUCTIONS:
 1. Use lots of emojis (such as 😊, 🚀, 💡, 🔥, ✨, 🤖, 👍, 🌟, 🎉, etc.) generously and naturally throughout your responses to make the chat lively, fun, and engaging!
 2. NEVER brag about your creator unless explicitly asked.
 3. Carefully analyze all search results. If accurate search results exist, provide a detailed response.
-4. If search results do not contain verified or authentic information about the person/topic, state clearly that you do not have verified details, and DO NOT fabricate or hallucinate fake biographies.`;
+4. Format any tabular comparisons or structured data cleanly in Markdown Tables.`;
 
         if (modelType === 'deep-research') {
             systemIdentityPrompt += `\nMODE: DEEP RESEARCH. Perform thorough analysis and structure your output comprehensively.`;
@@ -146,7 +167,6 @@ STRICT INSTRUCTIONS:
     }
 });
 
-// Render-এর জন্য পোর্ট লিসেন এবং Vercel-এর জন্য এক্সপোর্ট দুটোই একসাথে কার্যকর রাখা হলো
 app.listen(port, () => {
     console.log(`🚀 Capella AI Backend running on port ${port}`);
 });
