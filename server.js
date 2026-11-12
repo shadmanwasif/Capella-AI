@@ -17,9 +17,6 @@ const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
 
-const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID ? process.env.CLOUDFLARE_ACCOUNT_ID.trim() : "";
-const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN ? process.env.CLOUDFLARE_API_TOKEN.trim() : "";
-const HF_API_KEY = process.env.HF_API_KEY ? process.env.HF_API_KEY.trim() : "";
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 
 function shouldForceSearch(message, modelType) {
@@ -63,66 +60,20 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Real Image Generation (Hugging Face + Cloudflare Fallback)
+// High-Quality Flux Image Generator Endpoint (No NSFW blocks, beautiful details)
 app.post('/api/generate-image', async (req, res) => {
-    const { prompt } = req.body;
-    if (!prompt) return res.status(400).json({ success: false, error: "Prompt required." });
+    try {
+        const { prompt } = req.body;
+        if (!prompt) return res.status(400).json({ success: false, error: "Prompt required." });
 
-    // Method 1: Hugging Face Inference API (High Quality FLUX / SDXL)
-    if (HF_API_KEY) {
-        try {
-            const hfResponse = await fetch(
-                "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
-                {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${HF_API_KEY}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ inputs: prompt })
-                }
-            );
+        const encodedPrompt = encodeURIComponent(prompt);
+        // model=flux যোগ করার ফলে এখন ছবি অনেক শার্প এবং প্রিমিয়াম কোয়ালিটির হবে
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true`;
 
-            if (hfResponse.ok) {
-                const contentType = hfResponse.headers.get("content-type") || "image/jpeg";
-                if (contentType.startsWith("image/")) {
-                    const arrayBuffer = await hfResponse.arrayBuffer();
-                    const base64Image = Buffer.from(arrayBuffer).toString("base64");
-                    return res.json({ success: true, imageUrl: `data:${contentType};base64,${base64Image}` });
-                }
-            }
-        } catch (hfErr) {
-            console.error("HF Image Error, trying Cloudflare...", hfErr.message);
-        }
+        res.json({ success: true, imageUrl: imageUrl });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
-
-    // Method 2: Cloudflare Workers AI Fallback
-    if (CLOUDFLARE_ACCOUNT_ID && CLOUDFLARE_API_TOKEN) {
-        try {
-            const cfUrl = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/stabilityai/stable-diffusion-xl-base-1.0`;
-            const cfResponse = await fetch(cfUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ prompt: prompt })
-            });
-
-            if (cfResponse.ok) {
-                const arrayBuffer = await cfResponse.arrayBuffer();
-                const base64Image = Buffer.from(arrayBuffer).toString('base64');
-                return res.json({ success: true, imageUrl: `data:image/png;base64,${base64Image}` });
-            } else {
-                const errText = await cfResponse.text();
-                return res.status(500).json({ success: false, error: errText });
-            }
-        } catch (cfErr) {
-            return res.status(500).json({ success: false, error: cfErr.message });
-        }
-    }
-
-    res.status(500).json({ success: false, error: "No valid image generation API key responded." });
 });
 
 app.post('/api/chat', async (req, res) => {
