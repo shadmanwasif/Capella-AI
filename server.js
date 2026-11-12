@@ -17,8 +17,6 @@ const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
 
-const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID ? process.env.CLOUDFLARE_ACCOUNT_ID.trim() : "";
-const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN ? process.env.CLOUDFLARE_API_TOKEN.trim() : "";
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 
 function shouldForceSearch(message, modelType) {
@@ -62,48 +60,16 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Cloudflare Workers AI Image Generation Endpoint (Flux-1-Schnell)
+// Reliable & High-Quality Instant Image Generator Endpoint
 app.post('/api/generate-image', async (req, res) => {
     try {
         const { prompt } = req.body;
         if (!prompt) return res.status(400).json({ success: false, error: "Prompt required." });
-        
-        if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN) {
-            return res.status(500).json({ success: false, error: "Cloudflare credentials missing in environment." });
-        }
 
-        const cfUrl = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/black-forest-labs/flux-1-schnell`;
-        
-        const response = await fetch(cfUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ prompt: prompt })
-        });
+        const encodedPrompt = encodeURIComponent(prompt);
+        const imageUrl = `https://pollinations.ai/p/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=42`;
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Cloudflare AI Error (${response.status}): ${errorText}`);
-        }
-
-        const contentType = response.headers.get('content-type');
-        let base64Image = "";
-
-        if (contentType && contentType.includes('application/json')) {
-            const jsonRes = await response.json();
-            if (jsonRes.result && jsonRes.result.image) {
-                base64Image = jsonRes.result.image;
-            } else {
-                throw new Error("Invalid JSON structure received from Cloudflare AI.");
-            }
-        } else {
-            const arrayBuffer = await response.arrayBuffer();
-            base64Image = Buffer.from(arrayBuffer).toString('base64');
-        }
-
-        res.json({ success: true, imageUrl: `data:image/jpeg;base64,${base64Image}` });
+        res.json({ success: true, imageUrl: imageUrl });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
